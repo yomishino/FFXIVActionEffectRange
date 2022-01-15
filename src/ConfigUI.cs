@@ -62,18 +62,17 @@ namespace ActionEffectRange
 
                     ImGui.Text("Actions with large effect range: ");
                     ImGui.Indent();
-                    ImGui.ListBox("##LargeDrawOpt", ref Plugin.Config.LargeDrawOpt, Configuration.LargeDrawOptions, Configuration.LargeDrawOptions.Length);
+                    ImGui.Combo("##LargeDrawOpt", ref Plugin.Config.LargeDrawOpt, Configuration.LargeDrawOptions, Configuration.LargeDrawOptions.Length);
                     SetTooltip($"If set to any option other than \"{Configuration.LargeDrawOptions[0]}\", " +
                         $"AoEs whose effect range is at least as large as the number specified below will be drawn (or not drawn at all) according to the set option." +
-                        $"\n\nThis only applies to Circle AoEs or Donut AoEs, no matter what options or effect range threshold are set.");
+                        $"\n\nThis only applies to Circle or Donut AoEs (including Ground-targeted ones). " +
+                        $"Other types of AoEs are not affected by this setting.");
                     ImGui.Unindent();
                     if (Plugin.Config.LargeDrawOpt > 0)
                     {
-                        ImGui.Text("Apply to actions with effect range >= ");
-                        ImGui.SameLine();
-                        InputIntWithTooltip("##LargeThreshold", ref Plugin.Config.LargeThreshold, 1, 1, 0, 80, 
+                        InputIntWithTooltip("Apply to actions with effect range >= ", ref Plugin.Config.LargeThreshold, 1, 1, 0, 80, 
                             "The setting will be applied to actions with at least the specified effect range." +
-                            "\nFor example, if set to 15, AoE such as Medica and Medica II will be affected by this option, but not Cure III.");
+                            "\nFor example, if set to 15, AoE such as Medica and Medica II will be affected by the setting, but not Cure III.");
                         if (Plugin.Config.LargeThreshold < 0) Plugin.Config.LargeThreshold = 0;
                         if (Plugin.Config.LargeThreshold > 55) Plugin.Config.LargeThreshold = 55;
                     }
@@ -152,8 +151,11 @@ namespace ActionEffectRange
 
         private static void InputIntWithTooltip(string label, ref int v, int step, int stepFast, ImGuiInputTextFlags flags, float itemWidth, string? tooltip)
         {
+            ImGui.Text(label);
+            if (tooltip != null) SetTooltip(tooltip);
+            ImGui.SameLine();
             ImGui.SetNextItemWidth(itemWidth);
-            ImGui.InputInt(label, ref v, step, stepFast, flags);
+            ImGui.InputInt("##" + label, ref v, step, stepFast, flags);
             if (tooltip != null) SetTooltip(tooltip);
         }
 
