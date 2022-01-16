@@ -20,7 +20,8 @@ namespace ActionEffectRange
 
         public bool DrawOwnPets = true;
 
-        // TODO: GT draw until status off
+        public bool DrawGT = true;
+        // TODO: GT draw until status off; also flamethrower
 
         public int LargeDrawOpt = 0;    // 0 - normal, 1 - no draw, 2 - ring only
         public int LargeThreshold = 15;
@@ -38,7 +39,7 @@ namespace ActionEffectRange
         public float PersistSeconds = 1;
 
 
-        // TODO:
+        // TODO: blacklist
         /*
          * BlackList    // dont draw specified action --- note those actions that are not used directly by player
          * 

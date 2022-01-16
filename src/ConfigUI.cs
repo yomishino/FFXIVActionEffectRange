@@ -58,6 +58,8 @@ namespace ActionEffectRange
                     CheckboxWithTooltip("Enable drawing for your own pet's AoE actions", ref Plugin.Config.DrawOwnPets,
                         "If enabled, will also draw effect range for actions used by your own pet." +
                         "\nThis only works for Summoner/Scholar.");
+                    CheckboxWithTooltip("Enable drawing for ground-targeted actions", ref Plugin.Config.DrawGT,
+                        "If enabled, will also draw effect range for ground-targeted actions.");
                     ImGui.NewLine();
 
                     ImGui.Text("Actions with large effect range: ");

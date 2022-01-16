@@ -7,6 +7,7 @@ namespace ActionEffectRange.Actions
     {
         public readonly uint ActionId;
         public readonly ActionCategory Category;
+        public readonly bool IsGTAction;
         public readonly bool IsHarmfulAction;
         public readonly sbyte Range;
         public readonly byte EffectRange;
@@ -16,11 +17,12 @@ namespace ActionEffectRange.Actions
         public readonly byte AdditionalEffectRange; // basically for donut inner radius
         public readonly bool IsOriginal;
 
-        public EffectRangeData(uint actionId, uint actionCategory, bool isHarmful, sbyte range, byte effectRange, byte castType, 
-            byte xAxisModifier, byte additionalEffectRange = 0, bool isOriginal = true)
+        public EffectRangeData(uint actionId, uint actionCategory, bool isGT, bool isHarmful, sbyte range, byte effectRange, 
+            byte castType, byte xAxisModifier, byte additionalEffectRange = 0, bool isOriginal = true)
         {
             ActionId = actionId;
             Category = (ActionCategory)actionCategory;
+            IsGTAction = isGT;
             IsHarmfulAction = isHarmful;
             Range = range;
             EffectRange = effectRange;
@@ -32,7 +34,7 @@ namespace ActionEffectRange.Actions
         }
 
         public EffectRangeData(Lumina.Excel.GeneratedSheets.Action actionRow)
-            : this(actionRow.RowId, actionRow.ActionCategory.Row, ActionData.IsHarmfulAction(actionRow), actionRow.Range, actionRow.EffectRange, actionRow.CastType, actionRow.XAxisModifier) { }
+            : this(actionRow.RowId, actionRow.ActionCategory.Row, actionRow.TargetArea, ActionData.IsHarmfulAction(actionRow), actionRow.Range, actionRow.EffectRange, actionRow.CastType, actionRow.XAxisModifier) { }
         
     }
 

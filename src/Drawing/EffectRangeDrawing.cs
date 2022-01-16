@@ -88,8 +88,11 @@ namespace ActionEffectRange.Drawing
                         new TargetDirectedLineAoEDrawData(selfPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
                     break;
                 case ActionAoEType.GT:
-                    // TODO: drawing for GT (collective vs. usual gt; also check shukuti etc. cos need to rule out that)
                     drawData.Enqueue(new CircleAoEDrawData(targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
+                    break;
+                case ActionAoEType.DashAoE:
+                    // TODO: dash aoe
+                    drawData.Enqueue(new TargetDirectedLineAoEDrawData(selfPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
                     break;
                 case ActionAoEType.Donut:
                     drawData.Enqueue(new DonutAoEDrawData(targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, effectRangeData.AdditionalEffectRange, ringCol, fillCol));
