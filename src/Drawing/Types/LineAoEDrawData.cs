@@ -10,7 +10,7 @@ namespace ActionEffectRange.Drawing.Types
         public readonly Vector3 Direction;
         //public readonly float Rotation;
         public readonly float Length;
-        public readonly byte Width;
+        public readonly float Width;
         public readonly Vector3 End;
 
 
@@ -22,7 +22,7 @@ namespace ActionEffectRange.Drawing.Types
             Direction = Vector3.Normalize(target - origin);
             if (!calculateY) Direction.Y = 0;
             Length = baseEffectRange + .5f; // maybe; also visually slightly different for different enemies or for different hitbox radius; also the addition seems not applied to housing dummies, not sure why
-            Width = xAxisModifier;
+            Width = xAxisModifier % 2 == 1 ? xAxisModifier + .5f : xAxisModifier;   // TODO: seems so? cos line aoe with odd xAxisModifier seems slightly wider
             //Rotation = rotation;
             //End = new Vector3(Origin.X + Length * MathF.Sin(Rotation), Origin.Y, Origin.Z + Length * MathF.Cos(Rotation));
             End = Direction * Length + origin;
