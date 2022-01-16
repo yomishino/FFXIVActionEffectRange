@@ -28,13 +28,15 @@ namespace ActionEffectRange.Actions
 #endif
             if (!Plugin.IsPlayerLoaded || !ShouldProcessAction(actionType, actionId)) return;
 
+            lastRecordedAwaitedActionDataMap.Clear();
+
             var updatedEffectRangeDataSet = ActionData.CheckCornerCasesAndGetUpdatedEffectRangeData(actionId);
             if (updatedEffectRangeDataSet == null)
             {
                 PluginLog.Error($"SendAction: No excel row found for action of id {actionId}");
                 return;
             }
-            
+
             foreach (var data in updatedEffectRangeDataSet)
             {
                 if (!ShouldDrawForEffectRange(data.CastType, data.EffectRange)) continue;
@@ -111,6 +113,8 @@ namespace ActionEffectRange.Actions
             PluginLog.Debug($"---Using info from UseActionLocation for GT action #{actionId}");
 #endif
 
+            lastRecordedAwaitedActionDataMap.Clear();
+
             var updatedEffectRangeDataSet = ActionData.CheckCornerCasesAndGetUpdatedEffectRangeData(actionId);
             if (updatedEffectRangeDataSet == null)
             {
@@ -141,7 +145,7 @@ namespace ActionEffectRange.Actions
             PluginLog.Debug($"ReceiveActionEffect: src={sourceObjectId:X}, pos={(Vector3)Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position)}; AcMgr: CurrentSeq={CurrentSeq}, LastRecSeq={LastRecievedSeq}");
 #endif
 
-            if (!lastRecordedAwaitedActionDataMap.Any() || lastRecordedSeqToProcess == 0 || !Plugin.IsPlayerLoaded)
+            if (!lastRecordedAwaitedActionDataMap.Any() || !Plugin.IsPlayerLoaded || lastRecordedSeqToProcess == 0)
             {
                 lastRecordedAwaitedActionDataMap.Clear();
                 lastRecordedSeqToProcess = 0;
@@ -159,13 +163,12 @@ namespace ActionEffectRange.Actions
             PluginLog.Debug($"---effectHeader: target={header.TargetObjectId:X}, action={header.ActionId}, unkObjId={header.UnkObjectId:X}, seq={header.Sequence}, unk={header.Unk_1A:X}");
 #endif
 
-            if (header.Sequence > lastRecordedSeqToProcess)
-            {
-                lastRecordedAwaitedActionDataMap.Clear();
-                lastRecordedSeqToProcess = 0;
-                lastSentProcessed = false;
-            }
-
+            //if (header.Sequence > lastRecordedSeqToProcess)
+            //{
+            //    lastRecordedAwaitedActionDataMap.Clear();
+            //    lastRecordedSeqToProcess = 0;
+            //    lastSentProcessed = false;
+            //}
 
             if (header.Sequence == lastRecordedSeqToProcess
                 || header.Sequence == 0 && sourceObjectId == Plugin.BuddyList.PetBuddy?.GameObject?.ObjectId)
