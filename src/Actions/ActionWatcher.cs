@@ -26,7 +26,7 @@ namespace ActionEffectRange.Actions
             PluginLog.Debug($"SendAction: targetId={targetObjectId:X}, actionType={actionType}, actionId={actionId}, seq={sequence}, a5={a5:X}, a6={a6:X}, a7={a7:X}, a8={a8:X}, a9={a9:X}");
             PluginLog.Debug($"---AcMgr: currentSeq{CurrentSeq}, lastRecSeq={LastRecievedSeq}");
 #endif
-            if (!ShouldProcessAction(actionType, actionId)) return;
+            if (!Plugin.IsPlayerLoaded || !ShouldProcessAction(actionType, actionId)) return;
 
             var updatedEffectRangeDataSet = ActionData.CheckCornerCasesAndGetUpdatedEffectRangeData(actionId);
             if (updatedEffectRangeDataSet == null)
@@ -42,11 +42,11 @@ namespace ActionEffectRange.Actions
                 if (!lastRecordedAwaitedActionDataMap.ContainsKey(data.ActionId)) lastRecordedAwaitedActionDataMap[data.ActionId] = new();
 
                 if (data.Range == 0)
-                    lastRecordedAwaitedActionDataMap[data.ActionId].Add((data, Plugin.ClientState.LocalPlayer!.Position));
+                    lastRecordedAwaitedActionDataMap[data.ActionId].Add((data, Plugin.ClientState.LocalPlayer!.Position, Plugin.ClientState.LocalPlayer!.Position));
                 else
                 {
                     var target = Plugin.ObejctTable.SearchById((uint)targetObjectId);
-                    if (target != null) lastRecordedAwaitedActionDataMap[data.ActionId].Add((data, target.Position));
+                    if (target != null) lastRecordedAwaitedActionDataMap[data.ActionId].Add((data, Plugin.ClientState.LocalPlayer!.Position, target.Position));
                     else PluginLog.Error($"SendAction: Cannot find valid target of id {targetObjectId:X} for action {actionId}");
                 }
                 
@@ -68,11 +68,11 @@ namespace ActionEffectRange.Actions
                         if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
                         if (!lastRecordedAwaitedActionDataMap.ContainsKey(data.ActionId)) lastRecordedAwaitedActionDataMap[data.ActionId] = new();
                         if (data.Range == 0)
-                            lastRecordedAwaitedActionDataMap[data.ActionId].Add((data, pet.Position));
+                            lastRecordedAwaitedActionDataMap[data.ActionId].Add((data, pet.Position, pet.Position));
                         else
                         {
                             var target = Plugin.ObejctTable.SearchById((uint)targetObjectId);
-                            if (target != null) lastRecordedAwaitedActionDataMap[data.ActionId].Add((data, target.Position));
+                            if (target != null) lastRecordedAwaitedActionDataMap[data.ActionId].Add((data, pet.Position, target.Position));
                             else PluginLog.Error($"SendAction: Cannot find valid target of id {targetObjectId:X} for action {actionId}");
                         }
 #if DEBUG
@@ -105,7 +105,7 @@ namespace ActionEffectRange.Actions
 #if DEBUG
             PluginLog.Debug($"UseActionLocation: actionType={actionType}, actionId={actionId}, targetId={targetObjectId:X}, loc={(Vector3)Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(location)} param={param}; ret={ret}");
 #endif
-            if (ret == 0 || !Plugin.Config.DrawGT || lastSentProcessed || !ShouldProcessAction(actionType, actionId)) return ret;
+            if (ret == 0 || !Plugin.IsPlayerLoaded || !Plugin.Config.DrawGT || lastSentProcessed || !ShouldProcessAction(actionType, actionId)) return ret;
 
 #if DEBUG
             PluginLog.Debug($"---Using info from UseActionLocation for GT action #{actionId}");
@@ -123,7 +123,7 @@ namespace ActionEffectRange.Actions
                 if (!data.IsGTAction || !ShouldDrawForEffectRange(data.CastType, data.EffectRange)) continue;
                 if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
                 if (!lastRecordedAwaitedActionDataMap.ContainsKey(data.ActionId)) lastRecordedAwaitedActionDataMap[data.ActionId] = new();
-                lastRecordedAwaitedActionDataMap[data.ActionId].Add((data, new())); // will use location from ReceiveActionEffect
+                lastRecordedAwaitedActionDataMap[data.ActionId].Add((data, Plugin.ClientState.LocalPlayer!.Position, new())); // will use location from ReceiveActionEffect for target position
             }
             lastRecordedSeqToProcess = lastRecordedAwaitedActionDataMap.Any() ? CurrentSeq : (ushort)0;
             lastSentProcessed = true;
@@ -141,7 +141,7 @@ namespace ActionEffectRange.Actions
             PluginLog.Debug($"ReceiveActionEffect: src={sourceObjectId:X}, pos={(Vector3)Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position)}; AcMgr: CurrentSeq={CurrentSeq}, LastRecSeq={LastRecievedSeq}");
 #endif
 
-            if (!lastRecordedAwaitedActionDataMap.Any() || lastRecordedSeqToProcess == 0)
+            if (!lastRecordedAwaitedActionDataMap.Any() || lastRecordedSeqToProcess == 0 || !Plugin.IsPlayerLoaded)
             {
                 lastRecordedAwaitedActionDataMap.Clear();
                 lastRecordedSeqToProcess = 0;
@@ -172,7 +172,9 @@ namespace ActionEffectRange.Actions
                 if (lastRecordedAwaitedActionDataMap.TryGetValue(header.ActionId, out var dataSet))
                 {
                     foreach (var dataPair in dataSet)
-                        EffectRangeDrawing.AddEffectRangeToDraw(dataPair.EffectRangeData, dataPair.EffectRangeData.IsGTAction ? Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position) : dataPair.TargetPosition);
+                        EffectRangeDrawing.AddEffectRangeToDraw(dataPair.EffectRangeData, dataPair.originPosition, 
+                            dataPair.EffectRangeData.IsGTAction ? Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position) : dataPair.TargetPosition,
+                            Plugin.ClientState.LocalPlayer!.Rotation);
                     lastRecordedAwaitedActionDataMap.Clear();
                     lastRecordedSeqToProcess = 0;
                     lastSentProcessed = false;
@@ -184,7 +186,7 @@ namespace ActionEffectRange.Actions
         private static ushort LastRecievedSeq => (ushort)Marshal.ReadInt16(actionMgrPtr + 0x112);
 
 
-        private static readonly Dictionary<uint, HashSet<(EffectRangeData EffectRangeData, Vector3 TargetPosition)>>
+        private static readonly Dictionary<uint, HashSet<(EffectRangeData EffectRangeData, Vector3 originPosition, Vector3 TargetPosition)>>
             lastRecordedAwaitedActionDataMap = new();
         private static ushort lastRecordedSeqToProcess;
 

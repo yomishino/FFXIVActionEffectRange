@@ -7,20 +7,25 @@ namespace ActionEffectRange.Drawing.Types
     public abstract class LineAoEDrawData : DrawData
     {
         public readonly Vector3 Origin;
-        public readonly float Rotation;
+        public readonly Vector3 Direction;
+        //public readonly float Rotation;
         public readonly float Length;
         public readonly byte Width;
         public readonly Vector3 End;
 
 
-        public LineAoEDrawData(Vector3 origin, byte baseEffectRange, byte xAxisModifier, float rotation, uint ringColour, uint fillColour)
+        //public LineAoEDrawData(Vector3 origin, Vector3 target, byte baseEffectRange, byte xAxisModifier, float rotation, bool calculateY, uint ringColour, uint fillColour)
+        public LineAoEDrawData(Vector3 origin, Vector3 target, byte baseEffectRange, byte xAxisModifier, bool calculateY, uint ringColour, uint fillColour)
             : base(ringColour, fillColour)
         {
             Origin = origin;
+            Direction = Vector3.Normalize(target - origin);
+            if (!calculateY) Direction.Y = 0;
             Length = baseEffectRange + .5f; // maybe; also visually slightly different for different enemies or for different hitbox radius; also the addition seems not applied to housing dummies, not sure why
             Width = xAxisModifier;
-            Rotation = rotation;
-            End = new Vector3(Origin.X + Length * MathF.Sin(Rotation), Origin.Y, Origin.Z + Length * MathF.Cos(Rotation));
+            //Rotation = rotation;
+            //End = new Vector3(Origin.X + Length * MathF.Sin(Rotation), Origin.Y, Origin.Z + Length * MathF.Cos(Rotation));
+            End = Direction * Length + origin;
         }
 
         
@@ -33,10 +38,15 @@ namespace ActionEffectRange.Drawing.Types
 
             var w2 = Width / 2;
             
-            var p1w = new Vector3(Origin.X - w2 * MathF.Cos(Rotation), Origin.Y, Origin.Z + w2 * MathF.Sin(Rotation));
-            var p2w = new Vector3(Origin.X + w2 * MathF.Cos(Rotation), Origin.Y, Origin.Z - w2 * MathF.Sin(Rotation));
-            var p3w = new Vector3(End.X + w2 * MathF.Cos(Rotation), End.Y, End.Z - w2 * MathF.Sin(Rotation));
-            var p4w = new Vector3(End.X - w2 * MathF.Cos(Rotation), End.Y, End.Z + w2 * MathF.Sin(Rotation));
+            var p1w = Vector3.Normalize(new Vector3(Direction.Z, 0, -Direction.X)) * w2 + Origin;
+            var p2w = Vector3.Normalize(new Vector3(Direction.Z, 0, -Direction.X)) * w2 + End;
+            var p3w = Vector3.Normalize(new Vector3(-Direction.Z, 0, Direction.X)) * w2 + End;
+            var p4w = Vector3.Normalize(new Vector3(-Direction.Z, 0, Direction.X)) * w2 + Origin;
+
+            //var p1w = new Vector3(Origin.X - w2 * MathF.Cos(Rotation), Origin.Y, Origin.Z + w2 * MathF.Sin(Rotation));
+            //var p2w = new Vector3(Origin.X + w2 * MathF.Cos(Rotation), Origin.Y, Origin.Z - w2 * MathF.Sin(Rotation));
+            //var p3w = new Vector3(End.X + w2 * MathF.Cos(Rotation), End.Y, End.Z - w2 * MathF.Sin(Rotation));
+            //var p4w = new Vector3(End.X - w2 * MathF.Cos(Rotation), End.Y, End.Z + w2 * MathF.Sin(Rotation));
 
             Projection.WorldToScreen(p1w, out var p1s, out var p1r);
             Projection.WorldToScreen(p2w, out var p2s, out var p2r);

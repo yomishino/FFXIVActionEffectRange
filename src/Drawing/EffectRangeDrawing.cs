@@ -60,39 +60,37 @@ namespace ActionEffectRange.Drawing
             if (drawData.TryPeek(out var head) && head.ElapsedSeconds > Plugin.Config.DrawDelay + Plugin.Config.PersistSeconds) drawData.Dequeue();
         }
 
-        public static void AddEffectRangeToDraw(EffectRangeData effectRangeData, Vector3 targetPos)
+        public static void AddEffectRangeToDraw(EffectRangeData effectRangeData, Vector3 originPos, Vector3 targetPos, float rotation)
         {
             if (!Plugin.IsPlayerLoaded) return;
 #if DEBUG
-            PluginLog.Debug($"$AddEffectRangeToDraw: {effectRangeData.ActionId}, {effectRangeData.AoEType}, {targetPos}");
+            PluginLog.Debug($"$AddEffectRangeToDraw: {effectRangeData.ActionId}, {effectRangeData.AoEType}, orig={originPos}, target={targetPos}");
 #endif
             if (CheckCornerCases(effectRangeData, targetPos)) return;
             if (effectRangeData.IsHarmfulAction && !Plugin.Config.DrawHarmful) return;
             if (!effectRangeData.IsHarmfulAction && !Plugin.Config.DrawBeneficial) return;
             uint ringCol = effectRangeData.IsHarmfulAction ? harmfulRingColour : beneficialRingColour;
             uint fillCol = effectRangeData.IsHarmfulAction ? harmfulFillColour : beneficialFillColour;
-            var selfPos = Plugin.ClientState.LocalPlayer!.Position;
             switch (effectRangeData.AoEType)
             {
                 case ActionAoEType.Circle:
                     drawData.Enqueue(new CircleAoEDrawData(targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
                     break;
                 case ActionAoEType.Cone:
-                    drawData.Enqueue(selfPos == targetPos ?
-                        new FacingDirectedConeAoEDrawData(selfPos, Plugin.ClientState.LocalPlayer!.Rotation, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol) :
-                        new TargetDirectedConeAoEDrawData(selfPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
+                    drawData.Enqueue(originPos == targetPos ?
+                        new FacingDirectedConeAoEDrawData(originPos, rotation, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol) :
+                        new TargetDirectedConeAoEDrawData(originPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
                     break;
                 case ActionAoEType.Line:
-                    drawData.Enqueue(selfPos == targetPos ?
-                        new FacingDirectedLineAoEDrawData(selfPos, Plugin.ClientState.LocalPlayer!.Rotation, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol) :
-                        new TargetDirectedLineAoEDrawData(selfPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
+                    drawData.Enqueue(originPos == targetPos ?
+                        new FacingDirectedLineAoEDrawData(originPos, rotation, effectRangeData.EffectRange, effectRangeData.XAxisModifier, false, ringCol, fillCol) :
+                        new TargetDirectedLineAoEDrawData(originPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, false, ringCol, fillCol));
                     break;
                 case ActionAoEType.GT:
                     drawData.Enqueue(new CircleAoEDrawData(targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
                     break;
                 case ActionAoEType.DashAoE:
-                    // TODO: dash aoe
-                    drawData.Enqueue(new TargetDirectedLineAoEDrawData(selfPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
+                    drawData.Enqueue(new DashAoEDrawData(originPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
                     break;
                 case ActionAoEType.Donut:
                     drawData.Enqueue(new DonutAoEDrawData(targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, effectRangeData.AdditionalEffectRange, ringCol, fillCol));
