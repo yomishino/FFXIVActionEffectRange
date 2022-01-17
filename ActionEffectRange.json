@@ -1,8 +1,8 @@
 ﻿{
   "Name": "ActionEffectRange",
   "Author": "yomishino",
-  "Punchline": "Showing the AoE action effect range",
-  "Description": "A FFXIV Dalamud plugin showing the effect range of the AoE action just used.",
+  "Punchline": "Provides a visual cue on the effect range of the AoE action just used.",
+  "Description": "This plugin provides a visual cue on the effect range of the AoE action you just used.\n\nMay be used as a supplement/replacement to the actions' VFXs in showing effect range related information, such as where has the action landed and how large an area it covered.",
   "RepoUrl": "https://github.com/yomishino/FFXIVActionEffectRange",
   "Tags": [
     "UI",

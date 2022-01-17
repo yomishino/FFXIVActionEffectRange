@@ -1,5 +1,4 @@
 ﻿using ImGuiNET;
-using System;
 using System.Numerics;
 
 namespace ActionEffectRange.Drawing.Types
@@ -14,15 +13,18 @@ namespace ActionEffectRange.Drawing.Types
         public readonly Vector3 End;
 
 
-        //public LineAoEDrawData(Vector3 origin, Vector3 target, byte baseEffectRange, byte xAxisModifier, float rotation, bool calculateY, uint ringColour, uint fillColour)
+        // Length (depth) of LineAoE seems has a small factor added to Action.EffectRange so its slightly longer: maybe 0.5 but not sure;
+        // it sometimes look visually different on diffent enemies/hitbox radia.
+        // The addition seems not applied to dummies on the field (only to dummies in instances in explore mode).
         public LineAoEDrawData(Vector3 origin, Vector3 target, byte baseEffectRange, byte xAxisModifier, bool calculateY, uint ringColour, uint fillColour)
+        //public LineAoEDrawData(Vector3 origin, Vector3 target, byte baseEffectRange, byte xAxisModifier, float rotation, bool calculateY, uint ringColour, uint fillColour)
             : base(ringColour, fillColour)
         {
             Origin = origin;
             Direction = Vector3.Normalize(target - origin);
             if (!calculateY) Direction.Y = 0;
-            Length = baseEffectRange + .5f; // maybe; also visually slightly different for different enemies or for different hitbox radius; also the addition seems not applied to housing dummies, not sure why
-            Width = xAxisModifier % 2 == 1 ? xAxisModifier + .5f : xAxisModifier;   // TODO: seems so? cos line aoe with odd xAxisModifier seems slightly wider
+            Length = baseEffectRange + .5f; 
+            Width = xAxisModifier;
             //Rotation = rotation;
             //End = new Vector3(Origin.X + Length * MathF.Sin(Rotation), Origin.Y, Origin.Z + Length * MathF.Cos(Rotation));
             End = Direction * Length + origin;

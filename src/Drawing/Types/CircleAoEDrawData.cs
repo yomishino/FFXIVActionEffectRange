@@ -46,7 +46,7 @@ namespace ActionEffectRange.Drawing.Types
                     if (!float.IsNaN(p.X)) drawList.PathLineTo(p);
             }
             if (Plugin.Config.OuterRing)
-                drawList.PathStroke(RingColour, ImDrawFlags.None, Plugin.Config.Thickness);
+                drawList.PathStroke(RingColour, ImDrawFlags.Closed, Plugin.Config.Thickness);
             drawList.PathClear();
         }
     }

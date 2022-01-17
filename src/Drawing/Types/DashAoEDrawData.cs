@@ -9,9 +9,12 @@ namespace ActionEffectRange.Drawing.Types
         public readonly Vector3 Target;
         public readonly Vector3 Direction;
         public readonly byte EffectRange;
-        public readonly byte Width;
+        public readonly float Width;
 
-        // TODO: is there any added factor to length as in normal line aoe?
+        // No extra addition to length of the AoE which is unlike LineAoE.
+        // Seems for pvp players you can actually hit the target only if position you move to is at least (exactly) the same or go past the target's position,
+        // but dummies seem get dmg as if the AoE has some extra added (but who cares dummies! unless players are actually also like this in instances..)
+        // For width tho, different from LineAoE, it seems using Action.EffectRange for half of the width instead of using XAxisModifier as the full width?
         public DashAoEDrawData(Vector3 origin, Vector3 target, byte baseEffectRange, byte xAxisModifier, uint ringColour, uint fillColour)
         : base(ringColour, fillColour)
         {
@@ -19,7 +22,7 @@ namespace ActionEffectRange.Drawing.Types
             Target = target;
             Direction = target - origin;
             EffectRange = baseEffectRange;
-            Width = xAxisModifier;
+            Width = baseEffectRange * 2;
         }
 
 
