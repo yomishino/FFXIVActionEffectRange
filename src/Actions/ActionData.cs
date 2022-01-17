@@ -45,17 +45,15 @@ namespace ActionEffectRange.Actions
             => actionRow.Unknown30;
             //=> actionRow.Unknown46 == 1;
 
+        public static ushort GetRecast100ms(Lumina.Excel.GeneratedSheets.Action actionRow)
+            => actionRow.Recast100ms;
+
 
         public static bool IsRuledOutAction(uint actionId) => RuledOutActions.HashSet.Contains(actionId);
 
         
-        public static HashSet<EffectRangeData>? CheckCornerCasesAndGetUpdatedEffectRangeData(uint actionId)
+        public static HashSet<EffectRangeData> CheckCornerCasesAndGetUpdatedEffectRangeData(EffectRangeData originalData)
         {
-            var originalData = GetActionEffectRangeDataRaw(actionId);
-            if (originalData == null) return null;
-#if DEBUG
-            PluginLog.Debug($"---Action: id={actionId}, castType={originalData.CastType}({originalData.AoEType}), effectRange={originalData.EffectRange}, xAxisModifier={originalData.XAxisModifier}");
-#endif
             var updatedData = EffectRangeCornerCases.GetUpdatedEffectDataSet(originalData);
             if (!updatedData.Any())
                 updatedData.Add(originalData);
@@ -63,18 +61,26 @@ namespace ActionEffectRange.Actions
         }
 
 
-        public static bool CheckPetAction(uint ownerActionId, out HashSet<EffectRangeData?>? petActionEffectRangeDataSet)
+        public static bool CheckPetAction(EffectRangeData ownerActionData, out HashSet<EffectRangeData?>? petActionEffectRangeDataSet)
         {
             petActionEffectRangeDataSet = null;
-            if (!Plugin.BuddyList.PetBuddyPresent
-                || !PetActionMap.Dictionary.TryGetValue(ownerActionId, out var petActionIds) || petActionIds == null) return false;
-
+            if (!PetActionMap.Dictionary.TryGetValue(ownerActionData.ActionId, out var petActionIds) || petActionIds == null) return false;
             petActionEffectRangeDataSet = petActionIds
                 .Select(id => GetActionEffectRangeDataRaw(id))
                 .Where(data => data != null && data.EffectRange > 0)
                 .ToHashSet();
-
             return petActionEffectRangeDataSet.Any();
+        }
+
+        public static bool CheckPetLikeAction(EffectRangeData ownerActionData, out HashSet<EffectRangeData?>? petLikeActionEffectRangeDataSet)
+        {
+            petLikeActionEffectRangeDataSet = null;
+            if (!PetLikeActionMap.Dictionary.TryGetValue(ownerActionData.ActionId, out var petActionIds) || petActionIds == null) return false;
+            petLikeActionEffectRangeDataSet = petActionIds
+                .Select(id => GetActionEffectRangeDataRaw(id))
+                .Where(data => data != null && data.EffectRange > 0)
+                .ToHashSet();
+            return petLikeActionEffectRangeDataSet.Any();
         }
     }
 }

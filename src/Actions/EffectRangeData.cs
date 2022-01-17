@@ -1,5 +1,4 @@
 ﻿using ActionEffectRange.Actions.Enums;
-using System.Numerics;
 
 namespace ActionEffectRange.Actions
 {
@@ -16,6 +15,7 @@ namespace ActionEffectRange.Actions
         public readonly byte XAxisModifier; // for straight line aoe, this is the width?
         public readonly byte AdditionalEffectRange; // basically for donut inner radius
         public readonly bool IsOriginal;
+
 
         public EffectRangeData(uint actionId, uint actionCategory, bool isGT, bool isHarmful, sbyte range, byte effectRange, 
             byte castType, byte xAxisModifier, byte additionalEffectRange = 0, bool isOriginal = true)
@@ -34,7 +34,8 @@ namespace ActionEffectRange.Actions
         }
 
         public EffectRangeData(Lumina.Excel.GeneratedSheets.Action actionRow)
-            : this(actionRow.RowId, actionRow.ActionCategory.Row, actionRow.TargetArea, ActionData.IsHarmfulAction(actionRow), actionRow.Range, actionRow.EffectRange, actionRow.CastType, actionRow.XAxisModifier) { }
+            : this(actionRow.RowId, actionRow.ActionCategory.Row, actionRow.TargetArea, ActionData.IsHarmfulAction(actionRow),
+                   actionRow.Range, actionRow.EffectRange, actionRow.CastType, actionRow.XAxisModifier) { }
         
     }
 

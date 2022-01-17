@@ -15,7 +15,7 @@ namespace ActionEffectRange.Drawing
             {
                 case 11430:     // glass dance (BLU)
                     // Add the two cones on side here; front cone processed as normal
-                    // TODO: not accurate tho
+                    // TODO: glass dance - not accurate tho
                     if (Plugin.Config.DrawHarmful)
                     {
                         var selfPos = Plugin.ClientState.LocalPlayer!.Position;

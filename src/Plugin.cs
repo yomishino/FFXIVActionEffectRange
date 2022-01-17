@@ -28,6 +28,9 @@ namespace ActionEffectRange
         internal static SigScanner SigScanner { get; private set; } = null!;
         [PluginService]
         [RequiredVersion("1.0")]
+        internal static Framework Framework { get; private set; } = null!;
+        [PluginService]
+        [RequiredVersion("1.0")]
         internal static ClientState ClientState { get; private set; } = null!;
         [PluginService]
         [RequiredVersion("1.0")]

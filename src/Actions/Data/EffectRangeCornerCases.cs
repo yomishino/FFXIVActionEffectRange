@@ -1,5 +1,4 @@
-﻿using Dalamud.Logging;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace ActionEffectRange.Actions.Data
 {
@@ -19,19 +18,9 @@ namespace ActionEffectRange.Actions.Data
                         originalData.Range, originalData.EffectRange, originalData.CastType, originalData.XAxisModifier, isOriginal: false));
                     return updatedDataSet;
                 case 7418:      // flamethrower (MCH)
-                    updatedDataSet.Add(new(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, originalData.IsHarmfulAction,
+                    // Override CastType as cone AoE and force it to be "harmful"
+                    updatedDataSet.Add(new(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, true,
                         originalData.Range, originalData.EffectRange, 3, originalData.XAxisModifier, isOriginal: false));
-                    return updatedDataSet;
-                case 25774:     // phantom kamaitachi (NIN)
-                    // Override with 25775's data which is the actual action used by Bunshin
-                    var a25775 = ActionData.GetActionEffectRangeDataRaw(25775);
-                    if (a25775 == null)
-                    {
-                        PluginLog.Error($"CheckCornerCases: No excel row found for action of id {25775}");
-                        return updatedDataSet;
-                    }
-                    updatedDataSet.Add(new(originalData.ActionId, (uint)originalData.Category, a25775.IsGTAction, a25775.IsHarmfulAction,
-                        a25775.Range, a25775.EffectRange, a25775.CastType, a25775.XAxisModifier, isOriginal: false));
                     return updatedDataSet;
                 case 7439:      // earthly star
                     // Add also as harmful action

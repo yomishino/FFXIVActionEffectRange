@@ -4,7 +4,6 @@ using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
@@ -28,64 +27,97 @@ namespace ActionEffectRange.Actions
 #endif
             if (!Plugin.IsPlayerLoaded || !ShouldProcessAction(actionType, actionId)) return;
 
-            lastRecordedAwaitedActionDataMap.Clear();
-
-            var updatedEffectRangeDataSet = ActionData.CheckCornerCasesAndGetUpdatedEffectRangeData(actionId);
-            if (updatedEffectRangeDataSet == null)
+            var originalData = ActionData.GetActionEffectRangeDataRaw(actionId);
+            if (originalData == null)
             {
                 PluginLog.Error($"SendAction: No excel row found for action of id {actionId}");
                 return;
             }
+#if DEBUG
+            PluginLog.Debug($"---Action: id={actionId}, castType={originalData.CastType}({originalData.AoEType}), effectRange={originalData.EffectRange}, xAxisModifier={originalData.XAxisModifier}");
+#endif
 
-            foreach (var data in updatedEffectRangeDataSet)
-            {
-                if (!ShouldDrawForEffectRange(data.CastType, data.EffectRange)) continue;
-                if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
-                if (!lastRecordedAwaitedActionDataMap.ContainsKey(data.ActionId)) lastRecordedAwaitedActionDataMap[data.ActionId] = new();
+            bool replacedAction = false;
 
-                if (data.Range == 0)
-                    lastRecordedAwaitedActionDataMap[data.ActionId].Add((data, Plugin.ClientState.LocalPlayer!.Position, Plugin.ClientState.LocalPlayer!.Position));
-                else
-                {
-                    var target = Plugin.ObejctTable.SearchById((uint)targetObjectId);
-                    if (target != null) lastRecordedAwaitedActionDataMap[data.ActionId].Add((data, Plugin.ClientState.LocalPlayer!.Position, target.Position));
-                    else PluginLog.Error($"SendAction: Cannot find valid target of id {targetObjectId:X} for action {actionId}");
-                }
-                
-            }
-
-            if (Plugin.Config.DrawOwnPets && ActionData.CheckPetAction(actionId, out var petActionEffectRangeDataSet) 
-                && petActionEffectRangeDataSet != null)
+            // Check pet/pet-like actions; sequence is always 0 in ReceiveActionEffect for these actions 
+            if (Plugin.BuddyList.PetBuddyPresent)
             {
                 var pet = Plugin.BuddyList.PetBuddy?.GameObject;
                 if (pet != null)
                 {
 #if DEBUG
-                    PluginLog.Debug($"---check pet action: pet objId={pet.ObjectId:X}, pos={pet.Position}");
+                    PluginLog.Debug($"---check pet/pet-like action: pet objId={pet.ObjectId:X}, pos={pet.Position}");
 #endif
-                    foreach (var data in petActionEffectRangeDataSet)
+
+                    if (ActionData.CheckPetLikeAction(originalData, out var petLikeActionEffectRangeDataSet) && petLikeActionEffectRangeDataSet != null)
                     {
-                        if (data == null) continue;
-                        if (!ShouldDrawForEffectRange(data.CastType, data.EffectRange)) continue;
-                        if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
-                        if (!lastRecordedAwaitedActionDataMap.ContainsKey(data.ActionId)) lastRecordedAwaitedActionDataMap[data.ActionId] = new();
-                        if (data.Range == 0)
-                            lastRecordedAwaitedActionDataMap[data.ActionId].Add((data, pet.Position, pet.Position));
-                        else
+                        replacedAction = true;
+                        foreach (var data in petLikeActionEffectRangeDataSet)
                         {
-                            var target = Plugin.ObejctTable.SearchById((uint)targetObjectId);
-                            if (target != null) lastRecordedAwaitedActionDataMap[data.ActionId].Add((data, pet.Position, target.Position));
-                            else PluginLog.Error($"SendAction: Cannot find valid target of id {targetObjectId:X} for action {actionId}");
+                            if (data == null) continue;
+                            if (!ShouldDrawForEffectRange(data.CastType, data.EffectRange)) continue;
+                            if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
+                            recordedPetLikeActionEffectToWait[data.ActionId] = new(sequence);
+                            if (data.Range == 0)
+                                recordedPetLikeActionEffectToWait[data.ActionId].Add(new(data, pet.Position, pet.Position, pet.Rotation, true));
+                            else
+                            {
+                                var target = Plugin.ObejctTable.SearchById((uint)targetObjectId);
+                                if (target != null) recordedPetLikeActionEffectToWait[data.ActionId].Add(new(data, pet.Position, target.Position, pet.Rotation, true));
+                                else PluginLog.Error($"SendAction: Cannot find valid target of id {targetObjectId:X} for action {actionId}");
+                            }
+    #if DEBUG
+                            PluginLog.Debug($"---Found possible pet-like action: actionId={data.ActionId}");
+    #endif
                         }
+                    }
+
+                    if (Plugin.Config.DrawOwnPets && ActionData.CheckPetAction(originalData, out var petActionEffectRangeDataSet)
+                        && petActionEffectRangeDataSet != null)
+                    {
+                        replacedAction = true;
+                        foreach (var data in petActionEffectRangeDataSet)
+                        {
+                            if (data == null) continue;
+                            if (!ShouldDrawForEffectRange(data.CastType, data.EffectRange)) continue;
+                            if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
+                            recordedPetActionEffectToWait[data.ActionId] = new(sequence);
+                            if (data.Range == 0)
+                                recordedPetActionEffectToWait[data.ActionId].Add(new(data, pet.Position, pet.Position, pet.Rotation, true));
+                            else
+                            {
+                                var target = Plugin.ObejctTable.SearchById((uint)targetObjectId);
+                                if (target != null) recordedPetActionEffectToWait[data.ActionId].Add(new(data, pet.Position, target.Position, pet.Rotation, true));
+                                else PluginLog.Error($"SendAction: Cannot find valid target of id {targetObjectId:X} for action {actionId}");
+                            }
 #if DEBUG
-                        PluginLog.Debug($"---Found possible pet action: actionId={data.ActionId}");
+                            PluginLog.Debug($"---Found possible pet action: actionId={data.ActionId}");
 #endif
+                        }
                     }
                 }
             }
 
-            lastRecordedSeqToProcess = lastRecordedAwaitedActionDataMap.Any() ? sequence : (ushort)0;
-            lastSentProcessed = true;
+            if (replacedAction) return;
+
+            var updatedEffectRangeDataSet = ActionData.CheckCornerCasesAndGetUpdatedEffectRangeData(originalData);
+
+            recordedActionSequence[sequence] = new(sequence);
+
+            foreach (var data in updatedEffectRangeDataSet)
+            {
+                if (!ShouldDrawForEffectRange(data.CastType, data.EffectRange)) continue;
+                if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
+
+                if (data.Range == 0)
+                    recordedActionSequence[sequence].Add(new(data, Plugin.ClientState.LocalPlayer!.Position, Plugin.ClientState.LocalPlayer!.Position, Plugin.ClientState.LocalPlayer!.Rotation, false));
+                else
+                {
+                    var target = Plugin.ObejctTable.SearchById((uint)targetObjectId);
+                    if (target != null) recordedActionSequence[sequence].Add(new(data, Plugin.ClientState.LocalPlayer!.Position, target.Position, Plugin.ClientState.LocalPlayer!.Rotation, false));
+                    else PluginLog.Error($"SendAction: Cannot find valid target of id {targetObjectId:X} for action {actionId}");
+                }
+            }
         }
 
         private delegate byte UseActionDelegate(IntPtr actionManager, byte actionType, uint actionId, long targetObjectId, uint param, uint useType, int pvp, IntPtr a8);
@@ -107,15 +139,21 @@ namespace ActionEffectRange.Actions
 #if DEBUG
             PluginLog.Debug($"UseActionLocation: actionType={actionType}, actionId={actionId}, targetId={targetObjectId:X}, loc={(Vector3)Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(location)} param={param}; ret={ret}");
 #endif
-            if (ret == 0 || !Plugin.IsPlayerLoaded || !Plugin.Config.DrawGT || lastSentProcessed || !ShouldProcessAction(actionType, actionId)) return ret;
+            if (ret == 0 || !Plugin.IsPlayerLoaded || !Plugin.Config.DrawGT || !ShouldProcessAction(actionType, actionId)) return ret;
+            var seq = CurrentSeq;
+            if (recordedActionSequence.ContainsKey(seq)) return ret;
 
+            var originalData = ActionData.GetActionEffectRangeDataRaw(actionId);
+            if (originalData == null)
+            {
+                PluginLog.Error($"SendAction: No excel row found for action of id {actionId}");
+                return ret;
+            }
 #if DEBUG
+            PluginLog.Debug($"---Action: id={actionId}, castType={originalData.CastType}({originalData.AoEType}), effectRange={originalData.EffectRange}, xAxisModifier={originalData.XAxisModifier}");
             PluginLog.Debug($"---Using info from UseActionLocation for GT action #{actionId}");
 #endif
-
-            lastRecordedAwaitedActionDataMap.Clear();
-
-            var updatedEffectRangeDataSet = ActionData.CheckCornerCasesAndGetUpdatedEffectRangeData(actionId);
+            var updatedEffectRangeDataSet = ActionData.CheckCornerCasesAndGetUpdatedEffectRangeData(originalData);
             if (updatedEffectRangeDataSet == null)
             {
                 PluginLog.Error($"SendAction: No excel row found for action of id {actionId}");
@@ -126,12 +164,10 @@ namespace ActionEffectRange.Actions
             {
                 if (!data.IsGTAction || !ShouldDrawForEffectRange(data.CastType, data.EffectRange)) continue;
                 if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
-                if (!lastRecordedAwaitedActionDataMap.ContainsKey(data.ActionId)) lastRecordedAwaitedActionDataMap[data.ActionId] = new();
-                lastRecordedAwaitedActionDataMap[data.ActionId].Add((data, Plugin.ClientState.LocalPlayer!.Position, new())); // will use location from ReceiveActionEffect for target position
+                if (!recordedActionSequence.ContainsKey(seq)) recordedActionSequence[seq] = new(seq);
+                // Will use location from ReceiveActionEffect for target position later
+                recordedActionSequence[seq].Add(new(data, Plugin.ClientState.LocalPlayer!.Position, new(), Plugin.ClientState.LocalPlayer!.Rotation)); 
             }
-            lastRecordedSeqToProcess = lastRecordedAwaitedActionDataMap.Any() ? CurrentSeq : (ushort)0;
-            lastSentProcessed = true;
-
             return ret;
         }
 
@@ -145,13 +181,7 @@ namespace ActionEffectRange.Actions
             PluginLog.Debug($"ReceiveActionEffect: src={sourceObjectId:X}, pos={(Vector3)Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position)}; AcMgr: CurrentSeq={CurrentSeq}, LastRecSeq={LastRecievedSeq}");
 #endif
 
-            if (!lastRecordedAwaitedActionDataMap.Any() || !Plugin.IsPlayerLoaded || lastRecordedSeqToProcess == 0)
-            {
-                lastRecordedAwaitedActionDataMap.Clear();
-                lastRecordedSeqToProcess = 0;
-                lastSentProcessed = false;
-                return;
-            }
+            if (!Plugin.IsPlayerLoaded) return;
 
             if (effectHeader == IntPtr.Zero)
             {
@@ -163,37 +193,57 @@ namespace ActionEffectRange.Actions
             PluginLog.Debug($"---effectHeader: target={header.TargetObjectId:X}, action={header.ActionId}, unkObjId={header.UnkObjectId:X}, seq={header.Sequence}, unk={header.Unk_1A:X}");
 #endif
 
-            //if (header.Sequence > lastRecordedSeqToProcess)
-            //{
-            //    lastRecordedAwaitedActionDataMap.Clear();
-            //    lastRecordedSeqToProcess = 0;
-            //    lastSentProcessed = false;
-            //}
-
-            if (header.Sequence == lastRecordedSeqToProcess
-                || header.Sequence == 0 && sourceObjectId == Plugin.BuddyList.PetBuddy?.GameObject?.ObjectId)
-                if (lastRecordedAwaitedActionDataMap.TryGetValue(header.ActionId, out var dataSet))
+            if (header.Sequence == 0 && sourceObjectId == Plugin.BuddyList.PetBuddy?.GameObject?.ObjectId)
+            {
+                if (recordedPetLikeActionEffectToWait.TryGetValue(header.ActionId, out var petLikeSeqInfos))
                 {
-                    foreach (var dataPair in dataSet)
-                        EffectRangeDrawing.AddEffectRangeToDraw(dataPair.EffectRangeData, dataPair.originPosition, 
-                            dataPair.EffectRangeData.IsGTAction ? Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position) : dataPair.TargetPosition,
-                            Plugin.ClientState.LocalPlayer!.Rotation);
-                    lastRecordedAwaitedActionDataMap.Clear();
-                    lastRecordedSeqToProcess = 0;
-                    lastSentProcessed = false;
+                    foreach (var info in petLikeSeqInfos)
+                    {
+                        EffectRangeDrawing.AddEffectRangeToDraw(info.EffectRangeData, info.OriginPosition,
+                            info.EffectRangeData.IsGTAction ? Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position) : info.TargetPosition,
+                            info.ActorRotation);
+                    }
+                    recordedPetLikeActionEffectToWait.Remove(header.ActionId);
                 }
+                if (Plugin.Config.DrawOwnPets && recordedPetActionEffectToWait.TryGetValue(header.ActionId, out var petSeqInfos))
+                {
+                    foreach (var info in petSeqInfos)
+                    {
+                        EffectRangeDrawing.AddEffectRangeToDraw(info.EffectRangeData, info.OriginPosition,
+                            info.EffectRangeData.IsGTAction ? Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position) : info.TargetPosition,
+                            info.ActorRotation);
+                    }
+                    recordedPetLikeActionEffectToWait.Remove(header.ActionId);
+                }
+            }
+            else if (recordedActionSequence.TryGetValue(header.Sequence, out var seqInfos))
+            {
+                foreach (var info in seqInfos)
+                {
+                    EffectRangeDrawing.AddEffectRangeToDraw(info.EffectRangeData, info.OriginPosition,
+                            info.EffectRangeData.IsGTAction ? Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position) : info.TargetPosition,
+                            info.ActorRotation);
+                }
+                recordedActionSequence.Remove(header.Sequence);
+            }
         }
 
 
-        private static ushort CurrentSeq => (ushort)Marshal.ReadInt16(actionMgrPtr + 0x110);
-        private static ushort LastRecievedSeq => (ushort)Marshal.ReadInt16(actionMgrPtr + 0x112);
+        private static ushort CurrentSeq => actionMgrPtr != IntPtr.Zero ? (ushort)Marshal.ReadInt16(actionMgrPtr + 0x110) : (ushort)0;
+        private static ushort LastRecievedSeq => actionMgrPtr != IntPtr.Zero ? (ushort)Marshal.ReadInt16(actionMgrPtr + 0x112) : (ushort)0;
 
+        
+        private static readonly Dictionary<ushort, ActionSequenceInfoSet> recordedActionSequence = new();
+        private static Dictionary<uint, ActionSequenceInfoSet> recordedPetActionEffectToWait = new();
+        private static Dictionary<uint, ActionSequenceInfoSet> recordedPetLikeActionEffectToWait = new();
 
-        private static readonly Dictionary<uint, HashSet<(EffectRangeData EffectRangeData, Vector3 originPosition, Vector3 TargetPosition)>>
-            lastRecordedAwaitedActionDataMap = new();
-        private static ushort lastRecordedSeqToProcess;
+        private static void ClearActionSequenceInfoCache()
+        {
+            recordedActionSequence.Clear();
+            recordedPetActionEffectToWait.Clear();
+            recordedPetLikeActionEffectToWait.Clear();
+        }
 
-        private static bool lastSentProcessed;
 
         private static bool ShouldDrawForActionType(uint actionType) => actionType == 0x1 || actionType == 0xE; // pve 0x1, pvp 0xE
 
@@ -206,6 +256,25 @@ namespace ActionEffectRange.Actions
 
         private static bool ShouldProcessAction(byte actionType, uint actionId)
             => Plugin.IsPlayerLoaded && ShouldDrawForActionType(actionType) && ShouldDrawForAction(actionId);
+
+
+        private static uint playerClassJob;
+
+        private static void OnUpdateClearCacheOnJobChange(Dalamud.Game.Framework _)
+        {
+            if (!Plugin.IsPlayerLoaded) return;
+            var currentClassJob = Plugin.ClientState.LocalPlayer!.ClassJob.Id;
+            if (playerClassJob != currentClassJob)
+            {
+                ClearActionSequenceInfoCache();
+                playerClassJob = Plugin.ClientState.LocalPlayer.ClassJob.Id;
+            }
+        }
+
+        private static void OnTerritoryChangedClearCache(object? sender, ushort terr)
+        {
+            ClearActionSequenceInfoCache();
+        }
 
 
         static ActionWatcher()
@@ -231,6 +300,9 @@ namespace ActionEffectRange.Actions
             UseActionLocationHook?.Enable();
             SendActionHook?.Enable();
             ReceiveActionEffectHook?.Enable();
+
+            Plugin.Framework.Update += OnUpdateClearCacheOnJobChange;
+            Plugin.ClientState.TerritoryChanged += OnTerritoryChangedClearCache;
         }
 
         public static void Disable()
@@ -241,6 +313,9 @@ namespace ActionEffectRange.Actions
             UseActionLocationHook?.Disable();
             SendActionHook?.Disable();
             ReceiveActionEffectHook?.Disable();
+
+            Plugin.Framework.Update -= OnUpdateClearCacheOnJobChange;
+            Plugin.ClientState.TerritoryChanged -= OnTerritoryChangedClearCache;
         }
 
         public static void Dispose()
