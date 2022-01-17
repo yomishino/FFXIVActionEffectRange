@@ -16,9 +16,7 @@ The plugin is currently under development.
 1. Because the visual cues are drawn on an overlay without any current context/knowledge about the in-game geographical features etc.,
    it can sometimes look distorted or "hovered in the air" depending on the terrain and/or camera angle.
 
-2. There is no guarantee that things presented in the plugin will all be correct, 
-   as I don't have full knowledge about every aspect of the actions' effect ranges and can possibly make mistakes or misunderstand things.
-   There indeed are actions that I'm not quite sure about yet.
+2. There is no guarantee that things presented in the plugin will all be correct. 
 
 
 ## Known Issues

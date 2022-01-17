@@ -33,9 +33,22 @@ namespace ActionEffectRange.Actions.Data
                     updatedDataSet.Add(new(originalData.ActionId, (uint)originalData.Category, a25775.IsGTAction, a25775.IsHarmfulAction,
                         a25775.Range, a25775.EffectRange, a25775.CastType, a25775.XAxisModifier, isOriginal: false));
                     return updatedDataSet;
-                case 25874:  // macrocosmos (AST)   
-                    // TODO: macrocosmos need test
+                case 7439:      // earthly star
+                    // Add also as harmful action
+                    updatedDataSet.Add(new(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, true,
+                        originalData.Range, originalData.EffectRange, originalData.CastType, originalData.XAxisModifier, isOriginal: false));
+                    // Add original heal effect later to "prioritise" drawing it as beneficial
                     updatedDataSet.Add(originalData);
+                    return updatedDataSet;
+                case 17991:     // celestial opposition (AST PvP)
+                    updatedDataSet.Add(originalData);
+                    // Add also the additional heal effect range
+                    updatedDataSet.Add(new(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, false,
+                        originalData.Range, originalData.EffectRange, originalData.CastType, originalData.XAxisModifier, isOriginal: false));
+                    return updatedDataSet;
+                case 25874:     // macrocosmos (AST) 
+                    updatedDataSet.Add(originalData);
+                    // Add also the additional heal effect range
                     updatedDataSet.Add(new(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, false, 
                         originalData.Range, originalData.EffectRange, originalData.CastType, originalData.XAxisModifier, isOriginal: false));
                     return updatedDataSet;
