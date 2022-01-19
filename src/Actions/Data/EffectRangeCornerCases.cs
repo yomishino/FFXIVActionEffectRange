@@ -52,7 +52,8 @@ namespace ActionEffectRange.Actions.Data
                     return updatedDataSet;
                 case 11430:     // glass dance (BLU)
                     // Set customised central angle
-                    updatedDataSet.Add(new(originalData, ratio: .75f));
+                    const float ratio11430 = 2f / 3f;
+                    updatedDataSet.Add(new(originalData, ratio: ratio11430));
                     return updatedDataSet;
                 default: return updatedDataSet;
             }

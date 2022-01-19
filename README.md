@@ -6,9 +6,17 @@ May be used as a supplement/replacement to the actions' VFXs in showing effect r
 such as where has the action landed and how large an area it covered.
 
 
-"""
-The plugin is currently under development. 
-"""
+## How to Install
+
+_:warning: This plugin is currently only available as a Testing build._
+_Please intall it **only** if you are comfortable with it still being under testing._
+
+[XIVLauncher](https://github.com/goatcorp/FFXIVQuickLauncher) is required to install and run the plugin.
+
+Add my [Dalamud plugin repo](https://github.com/yomishino/DalamudPlugins) to Dalamud's Custom Plugin Repositories.
+See [here](https://github.com/yomishino/DalamudPlugins#readme) for details.
+
+Once added, look for the plugin "ActionEffectRange" in Plugin Installer's available plugins.
 
 
 ## Disclaimer
@@ -16,11 +24,10 @@ The plugin is currently under development.
 1. Because the visual cues are drawn on an overlay without any current context/knowledge about the in-game geographical features etc.,
    it can sometimes look distorted or "hovered in the air" depending on the terrain and/or camera angle.
 
-2. There is no guarantee that things presented in the plugin will all be correct. 
+2. Please expect small errors in calculation. Apart from that, there may also be mistakes. 
 
 
 ## Known Issues
 
-- Blue Mage's "Glass Dance": Effect range is inaccurate
 - Dancer's "Curing Waltz": Not showing effect range for additional effect (AoE heal around partner)
 
