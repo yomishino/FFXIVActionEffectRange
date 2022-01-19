@@ -78,8 +78,8 @@ namespace ActionEffectRange.Drawing
                     break;
                 case ActionAoEType.Cone:
                     drawData.Enqueue(originPos == targetPos ?
-                        new FacingDirectedConeAoEDrawData(originPos, rotation, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol) :
-                        new TargetDirectedConeAoEDrawData(originPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
+                        new FacingDirectedConeAoEDrawData(originPos, rotation, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol, effectRangeData.Ratio) :
+                        new TargetDirectedConeAoEDrawData(originPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol, effectRangeData.Ratio));
                     break;
                 case ActionAoEType.Line:
                     drawData.Enqueue(originPos == targetPos ?

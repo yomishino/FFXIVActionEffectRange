@@ -48,8 +48,11 @@ namespace ActionEffectRange.Actions.Data
                     updatedDataSet.Add(new(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, false, 0, 20, 2, 0, isOriginal: false));
                     return updatedDataSet;
                 case 11420:     // dragon's voice (BLU)
-                    updatedDataSet.Add(new(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, originalData.IsHarmfulAction, 
-                        originalData.Range, originalData.EffectRange, originalData.CastType, originalData.XAxisModifier, additionalEffectRange: 8, isOriginal: false));
+                    updatedDataSet.Add(new(originalData, additionalEffectRange: 8));
+                    return updatedDataSet;
+                case 11430:     // glass dance (BLU)
+                    // Set customised central angle
+                    updatedDataSet.Add(new(originalData, ratio: .75f));
                     return updatedDataSet;
                 default: return updatedDataSet;
             }
