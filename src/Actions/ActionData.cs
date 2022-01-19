@@ -35,15 +35,14 @@ namespace ActionEffectRange.Actions
                 _ => ActionAoEType.None
             };
 
-        // Unk30: true is harmful
-        // Unk46: 1 harmful, 2 beneficial, 0 is non-enmity? (such doh/dol abilities and non-attacking moving abilities )
-        // These fields may not actually indicate harmful/beneficial; it just seems generally consistent with actions being harmful or not.
-        // Also for #16553 (celestial opposition PvE), Unk30 is false but unk46 is 1.
-        // ** For GT actions even if they do dmg (salted earth, doton), both fields are saying they are "beneficial" (unk30 == false, unk46 == 2),
-        //      but i think it would be more intuitive if they are treated as "harmful" so those will be covered as corner cases.
+        // Unk46: 0 - No direct effect, e.g. nonattacking move action like AM and En Avant, pet summon&ordering actions;
+        //        1 - attacking-type;
+        //        2 - healing-type;
+        // From observation, not sure.
+        // But grounded attacking AoE (salted earth, doton, the removed ShadowFlare etc.) are all 2,
+        // Celetial Opposition(pve) is 1 (probably a legacy design where it used to stun enemies?).
         public static bool IsHarmfulAction(Lumina.Excel.GeneratedSheets.Action actionRow)
-            => actionRow.Unknown30;
-            //=> actionRow.Unknown46 == 1;
+            => actionRow.Unknown46 == 1;
 
         public static ushort GetRecast100ms(Lumina.Excel.GeneratedSheets.Action actionRow)
             => actionRow.Recast100ms;

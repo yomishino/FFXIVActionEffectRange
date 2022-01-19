@@ -39,6 +39,10 @@ namespace ActionEffectRange.Actions
             : this(actionRow.RowId, actionRow.ActionCategory.Row, actionRow.TargetArea, ActionData.IsHarmfulAction(actionRow),
                    actionRow.Range, actionRow.EffectRange, actionRow.CastType, actionRow.XAxisModifier, isOriginal: true) { }
 
+        public EffectRangeData(EffectRangeData originalData, bool isHarmful, bool isOriginal = false)
+            : this(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, isHarmful,
+                  originalData.Range, originalData.EffectRange, originalData.CastType, originalData.XAxisModifier, isOriginal: isOriginal) { }
+
         public EffectRangeData(EffectRangeData originalData, byte additionalEffectRange = 0, float ratio = .25f, bool isOriginal = false)
             : this(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, originalData.IsHarmfulAction,
                   originalData.Range, originalData.EffectRange, originalData.CastType, originalData.XAxisModifier,
