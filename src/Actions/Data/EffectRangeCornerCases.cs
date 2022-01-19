@@ -17,7 +17,7 @@ namespace ActionEffectRange.Actions.Data
                     updatedDataSet.Add(new(originalData, isHarmful: true));
                     return updatedDataSet;
                 case 7418:      // flamethrower (MCH)
-                    // Override CastType as cone AoE and force it to be "harmful"
+                    // Override CastType as cone AoE
                     updatedDataSet.Add(new(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, true,
                         originalData.Range, originalData.EffectRange, 3, originalData.XAxisModifier, isOriginal: false));
                     return updatedDataSet;
@@ -55,6 +55,10 @@ namespace ActionEffectRange.Actions.Data
                     // Set customised central angle
                     const float ratio11430 = 2f / 3f;
                     updatedDataSet.Add(new(originalData, ratio: ratio11430));
+                    return updatedDataSet;
+                case 23289:     // phantom flurry (2nd phase) (BLU)
+                    // Set customised central angle
+                    updatedDataSet.Add(new(originalData, ratio: .5f));
                     return updatedDataSet;
                 default: return updatedDataSet;
             }
