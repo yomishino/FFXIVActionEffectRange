@@ -77,12 +77,12 @@ namespace ActionEffectRange.Drawing
                     break;
                 case ActionAoEType.Cone:
                     drawData.Enqueue(originPos == targetPos ?
-                        new FacingDirectedConeAoEDrawData(originPos, rotation, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol, effectRangeData.Ratio) :
+                        new FacingDirectedConeAoEDrawData(originPos, rotation + effectRangeData.RotationOffset, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol, effectRangeData.Ratio) :
                         new TargetDirectedConeAoEDrawData(originPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol, effectRangeData.Ratio));
                     break;
                 case ActionAoEType.Line:
                     drawData.Enqueue(originPos == targetPos ?
-                        new FacingDirectedLineAoEDrawData(originPos, rotation, effectRangeData.EffectRange, effectRangeData.XAxisModifier, false, ringCol, fillCol) :
+                        new FacingDirectedLineAoEDrawData(originPos, rotation + effectRangeData.RotationOffset, effectRangeData.EffectRange, effectRangeData.XAxisModifier, false, ringCol, fillCol) :
                         new TargetDirectedLineAoEDrawData(originPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, false, ringCol, fillCol));
                     break;
                 case ActionAoEType.GT:

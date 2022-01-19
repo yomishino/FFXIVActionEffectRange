@@ -15,11 +15,12 @@ namespace ActionEffectRange.Actions
         public readonly byte XAxisModifier; // for straight line aoe, this is the width?
         public readonly byte AdditionalEffectRange; // basically for donut inner radius
         public readonly float Ratio;    // for Cone only, central angle to 2pi
+        public readonly float RotationOffset;
         public readonly bool IsOriginal;
 
 
         public EffectRangeData(uint actionId, uint actionCategory, bool isGT, bool isHarmful, sbyte range, byte effectRange, 
-            byte castType, byte xAxisModifier, byte additionalEffectRange = 0, float ratio = .25f, bool isOriginal = false)
+            byte castType, byte xAxisModifier, byte additionalEffectRange = 0, float ratio = .25f, float rotationOffset = 0, bool isOriginal = false)
         {
             ActionId = actionId;
             Category = (ActionCategory)actionCategory;
@@ -32,6 +33,7 @@ namespace ActionEffectRange.Actions
             XAxisModifier = xAxisModifier;
             AdditionalEffectRange = additionalEffectRange;
             Ratio = ratio;
+            RotationOffset = rotationOffset;
             IsOriginal = isOriginal;
         }
 
@@ -46,7 +48,7 @@ namespace ActionEffectRange.Actions
         public EffectRangeData(EffectRangeData originalData, byte additionalEffectRange = 0, float ratio = .25f, bool isOriginal = false)
             : this(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, originalData.IsHarmfulAction,
                   originalData.Range, originalData.EffectRange, originalData.CastType, originalData.XAxisModifier,
-                  additionalEffectRange, ratio, isOriginal) { }
+                  additionalEffectRange, ratio, isOriginal: isOriginal) { }
     }
 
 }
