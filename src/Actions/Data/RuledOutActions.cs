@@ -9,7 +9,7 @@ namespace ActionEffectRange.Actions.Data
             2262,   // Shukuchi
             8812,   // Shukuchi PvP
 
-            //8324,   // stellar detonation   (from earthly star)
+            11401,  // Loom (BLU)
 
         }.ToImmutableHashSet();
     }
