@@ -236,8 +236,8 @@ namespace ActionEffectRange.Actions
 
         
         private static readonly Dictionary<ushort, ActionSequenceInfoSet> recordedActionSequence = new();
-        private static Dictionary<uint, ActionSequenceInfoSet> recordedPetActionEffectToWait = new();
-        private static Dictionary<uint, ActionSequenceInfoSet> recordedPetLikeActionEffectToWait = new();
+        private static readonly Dictionary<uint, ActionSequenceInfoSet> recordedPetActionEffectToWait = new();
+        private static readonly Dictionary<uint, ActionSequenceInfoSet> recordedPetLikeActionEffectToWait = new();
 
         private static void ClearActionSequenceInfoCache()
         {

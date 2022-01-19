@@ -66,7 +66,6 @@ namespace ActionEffectRange.Drawing
 #if DEBUG
             PluginLog.Debug($"$AddEffectRangeToDraw: {effectRangeData.ActionId}, {effectRangeData.AoEType}, orig={originPos}, target={targetPos}");
 #endif
-            if (CheckCornerCases(effectRangeData, targetPos)) return;
             if (effectRangeData.IsHarmfulAction && !Plugin.Config.DrawHarmful) return;
             if (!effectRangeData.IsHarmfulAction && !Plugin.Config.DrawBeneficial) return;
             uint ringCol = effectRangeData.IsHarmfulAction ? harmfulRingColour : beneficialRingColour;
