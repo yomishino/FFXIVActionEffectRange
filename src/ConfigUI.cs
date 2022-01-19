@@ -105,9 +105,10 @@ namespace ActionEffectRange
                     }
                     ImGui.Columns(1);
                     ImGui.NewLine();
-                    DragIntWithTooltip("Smoothness: ", ref Plugin.Config.NumSegments, 10, 10, 1000, 100,
+                    DragIntWithTooltip("Smoothness: ", ref Plugin.Config.NumSegments, 10, 40, 500, 100,
                         "The larger number, the smoothier");
-                    if (Plugin.Config.NumSegments < 10) Plugin.Config.NumSegments = 10;
+                    if (Plugin.Config.NumSegments < 40) Plugin.Config.NumSegments = 40;
+                    if (Plugin.Config.NumSegments > 500) Plugin.Config.NumSegments = 500;
                     ImGui.TreePop();
 
                     ImGui.NewLine();
