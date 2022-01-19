@@ -11,10 +11,6 @@ namespace ActionEffectRange.Drawing.Types
         public readonly float Radius;
         public readonly byte Width;
         public readonly Vector3 End;
-
-        public readonly float Angle;
-        public readonly float SegmentRatio;
-
         public readonly float Ratio;
 
 
