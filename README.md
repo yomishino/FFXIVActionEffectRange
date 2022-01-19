@@ -21,4 +21,6 @@ The plugin is currently under development.
 
 ## Known Issues
 
-- Blue Mage's action "Glass Dance": it's currently showing inaccurate effect range with several ugly shapes being drawn.
+- Blue Mage's "Glass Dance": Effect range is inaccurate
+- Dancer's "Curing Waltz": Not showing effect range for additional effect (AoE heal around partner)
+

@@ -17,7 +17,6 @@ namespace ActionEffectRange.Drawing.Types
         // it sometimes look visually different on diffent enemies/hitbox radia.
         // The addition seems not applied to dummies on the field (only to dummies in instances in explore mode).
         public LineAoEDrawData(Vector3 origin, Vector3 target, byte baseEffectRange, byte xAxisModifier, bool calculateY, uint ringColour, uint fillColour)
-        //public LineAoEDrawData(Vector3 origin, Vector3 target, byte baseEffectRange, byte xAxisModifier, float rotation, bool calculateY, uint ringColour, uint fillColour)
             : base(ringColour, fillColour)
         {
             Origin = origin;

@@ -21,8 +21,7 @@ namespace ActionEffectRange
         public bool DrawOwnPets = true;
 
         public bool DrawGT = true;
-        // TODO: GT draw until status off; also flamethrower
-
+        
         public int LargeDrawOpt = 0;    // 0 - normal, 1 - no draw, 2 - ring only
         public int LargeThreshold = 15;
         [JsonIgnore] public static readonly string[] LargeDrawOptions = new string[] { "Draw normally", "Do not draw", "Draw outline (outer ring) only" };

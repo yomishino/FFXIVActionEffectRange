@@ -21,6 +21,8 @@ namespace ActionEffectRange.Drawing
 
         public abstract void Draw(ImGuiNET.ImDrawListPtr drawList);
 
+        public static float SegmentAngle => 2 * MathF.PI / Plugin.Config.NumSegments;
+
         public static float CalculateRotation(Vector3 origin, Vector3 target)
             => MathF.Atan2(target.X - origin.X, target.Z - origin.Z);
     }

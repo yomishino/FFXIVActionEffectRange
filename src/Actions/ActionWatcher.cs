@@ -13,9 +13,9 @@ namespace ActionEffectRange.Actions
     {
         private static readonly IntPtr actionMgrPtr;
 
-        // SendAction returned before UseAction
-        // Information here is more accurate; handles combo/proc and target issues esp. with plugins like FFXIVCombo / ReAction 
-        // Not called for ground targets tho
+        // Send what is executed; won't be called if queued but not yet executed or failed to execute (e.g. cast cancelled)
+        // Information here also more accurate than from UseAction; handles combo/proc and target issues esp. with plugins like FFXIVCombo / ReAction 
+        // Not called for GT actions tho
         private delegate void SendActionDelegate(long targetObjectId, byte actionType, uint actionId, ushort sequence, long a5, long a6, long a7, long a8, long a9);
         private static readonly Hook<SendActionDelegate>? SendActionHook;
         private static void SendActionDetour(long targetObjectId, byte actionType, uint actionId, ushort sequence, long a5, long a6, long a7, long a8, long a9)
@@ -120,6 +120,8 @@ namespace ActionEffectRange.Actions
             }
         }
 
+        // useType == 0 when queued;
+        // if queued action not executed immediately but wait in queue till later, useType == 1 when called for actual execution
         private delegate byte UseActionDelegate(IntPtr actionManager, byte actionType, uint actionId, long targetObjectId, uint param, uint useType, int pvp, IntPtr a8);
         private static readonly Hook<UseActionDelegate>? UseActionHook;
         private static byte UseActionDetour(IntPtr actionManager, byte actionType, uint actionId, long targetObjectId, uint param, uint useType, int pvp, IntPtr a8)
@@ -130,7 +132,7 @@ namespace ActionEffectRange.Actions
 #endif
             return ret;
         }
-
+        
         private delegate byte UseActionLocationDelegate(IntPtr actionManager, byte actionType, uint actionId, long targetObjectId, IntPtr location, uint param);
         private static readonly Hook<UseActionLocationDelegate>? UseActionLocationHook;
         private static byte UseActionLocationDetour(IntPtr actionManager, byte actionType, uint actionId, long targetObjectId, IntPtr location, uint param)

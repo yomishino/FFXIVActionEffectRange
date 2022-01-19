@@ -21,11 +21,7 @@ namespace ActionEffectRange.Drawing
                         var selfPos = Plugin.ClientState.LocalPlayer!.Position;
                         var selfRot = Plugin.ClientState.LocalPlayer!.Rotation;
                         drawData.Enqueue(new FacingDirectedConeAoEDrawData(selfPos, selfRot,
-                            effectRangeData.EffectRange, effectRangeData.XAxisModifier, harmfulRingColour, harmfulFillColour, MathF.PI));
-                        drawData.Enqueue(new FacingDirectedConeAoEDrawData(selfPos, selfRot - MathF.PI / 2,
-                            effectRangeData.EffectRange, effectRangeData.XAxisModifier, harmfulRingColour, harmfulFillColour, MathF.PI / 4));
-                        drawData.Enqueue(new FacingDirectedConeAoEDrawData(selfPos, selfRot + MathF.PI / 2,
-                            effectRangeData.EffectRange, effectRangeData.XAxisModifier, harmfulRingColour, harmfulFillColour, MathF.PI / 4));
+                            effectRangeData.EffectRange, effectRangeData.XAxisModifier, harmfulRingColour, harmfulFillColour, .75f));
                     }
                     return true;
                 default:
