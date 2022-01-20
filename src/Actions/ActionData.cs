@@ -58,9 +58,6 @@ namespace ActionEffectRange.Actions
             return updatedData;
         }
 
-        public static EffectRangeData UpdateConeAoECentralAngle(EffectRangeData originalData)
-            => originalData.AoEType == ActionAoEType.Cone && ConeAoEAngleMap.Dictionary.TryGetValue(originalData.ActionId, out float angle)
-            ? new(originalData, centralAngleBy2pi: angle) : originalData;
 
         public static bool CheckPetAction(EffectRangeData ownerActionData, out HashSet<EffectRangeData?>? petActionEffectRangeDataSet)
         {
@@ -85,7 +82,12 @@ namespace ActionEffectRange.Actions
         }
 
 
-        public static float GetConeAoECentralAngle(uint actionId)
-            => ConeAoEAngleMap.Dictionary.TryGetValue(actionId, out float angle) ? angle : ConeAoEAngleMap.DefaultAngleBy2pi;
+        public static float GetConeAoECentralAngle(uint actionId, byte effectRange)
+        {
+            if (ConeAoEAngleMap.Dictionary.TryGetValue(actionId, out float angle)) return angle;
+            if (effectRange == 8) return ConeAoEAngleMap.DefaultAngleBy2pi_Range8;
+            else if (effectRange == 6) return ConeAoEAngleMap.DefaultAngleBy2pi_Range6;
+            else return ConeAoEAngleMap.DefaultAngleBy2pi_Range12;
+        }
     }
 }
