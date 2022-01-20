@@ -1,6 +1,5 @@
 ﻿using ActionEffectRange.Actions.Data;
 using ActionEffectRange.Actions.Enums;
-using Dalamud.Logging;
 using System.Collections.Generic;
 using System.Linq;
 
