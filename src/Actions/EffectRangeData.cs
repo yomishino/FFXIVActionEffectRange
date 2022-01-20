@@ -14,13 +14,12 @@ namespace ActionEffectRange.Actions
         public readonly ActionAoEType AoEType;
         public readonly byte XAxisModifier; // for straight line aoe, this is the width?
         public readonly byte AdditionalEffectRange; // basically for donut inner radius
-        public readonly float Ratio;    // for Cone only, central angle to 2pi
         public readonly float RotationOffset;
         public readonly bool IsOriginal;
 
 
         public EffectRangeData(uint actionId, uint actionCategory, bool isGT, bool isHarmful, sbyte range, byte effectRange, 
-            byte castType, byte xAxisModifier, byte additionalEffectRange = 0, float ratio = .25f, float rotationOffset = 0, bool isOriginal = false)
+            byte castType, byte xAxisModifier, byte additionalEffectRange = 0, float rotationOffset = 0, bool isOriginal = false)
         {
             ActionId = actionId;
             Category = (ActionCategory)actionCategory;
@@ -32,7 +31,6 @@ namespace ActionEffectRange.Actions
             AoEType = ActionData.GetActionAoEType(castType);
             XAxisModifier = xAxisModifier;
             AdditionalEffectRange = additionalEffectRange;
-            Ratio = ratio;
             RotationOffset = rotationOffset;
             IsOriginal = isOriginal;
         }
@@ -45,10 +43,11 @@ namespace ActionEffectRange.Actions
             : this(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, isHarmful,
                   originalData.Range, originalData.EffectRange, originalData.CastType, originalData.XAxisModifier, isOriginal: isOriginal) { }
 
-        public EffectRangeData(EffectRangeData originalData, byte additionalEffectRange = 0, float ratio = .25f, bool isOriginal = false)
+        public EffectRangeData(EffectRangeData originalData, byte additionalEffectRange = 0, 
+            float centralAngleBy2pi = .25f, float rotationOffset = 0, bool isOriginal = false)
             : this(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, originalData.IsHarmfulAction,
                   originalData.Range, originalData.EffectRange, originalData.CastType, originalData.XAxisModifier,
-                  additionalEffectRange, ratio, isOriginal: isOriginal) { }
+                  additionalEffectRange, rotationOffset, isOriginal: isOriginal) { }
     }
 
 }

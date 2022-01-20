@@ -76,9 +76,10 @@ namespace ActionEffectRange.Drawing
                     drawData.Enqueue(new CircleAoEDrawData(targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
                     break;
                 case ActionAoEType.Cone:
+                    var angle = ActionData.GetConeAoECentralAngle(effectRangeData.ActionId);
                     drawData.Enqueue(originPos == targetPos ?
-                        new FacingDirectedConeAoEDrawData(originPos, rotation + effectRangeData.RotationOffset, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol, effectRangeData.Ratio) :
-                        new TargetDirectedConeAoEDrawData(originPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol, effectRangeData.Ratio));
+                        new FacingDirectedConeAoEDrawData(originPos, rotation + effectRangeData.RotationOffset, effectRangeData.EffectRange, effectRangeData.XAxisModifier, angle, ringCol, fillCol) :
+                        new TargetDirectedConeAoEDrawData(originPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, angle, ringCol, fillCol));
                     break;
                 case ActionAoEType.Line:
                     drawData.Enqueue(originPos == targetPos ?

@@ -7,7 +7,7 @@ namespace ActionEffectRange.Drawing.Types
     {
         public readonly Vector3 Target;
 
-        public TargetDirectedConeAoEDrawData(Vector3 origin, Vector3 target, byte baseEffectRange, byte xAxisModifier, uint ringColour, uint fillColour, float ratio = .25f)
-            : base(origin, baseEffectRange, xAxisModifier, CalculateRotation(origin, target), ringColour, fillColour, ratio) { }
+        public TargetDirectedConeAoEDrawData(Vector3 origin, Vector3 target, byte baseEffectRange, byte xAxisModifier, float centralAngleBy2pi, uint ringColour, uint fillColour)
+            : base(origin, baseEffectRange, xAxisModifier, CalculateRotation(origin, target), centralAngleBy2pi, ringColour, fillColour) { }
     }
 }

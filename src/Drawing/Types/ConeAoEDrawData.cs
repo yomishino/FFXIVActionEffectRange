@@ -11,10 +11,10 @@ namespace ActionEffectRange.Drawing.Types
         public readonly float Radius;
         public readonly byte Width;
         public readonly Vector3 End;
-        public readonly float Ratio;
+        public readonly float CentralAngleBy2pi;
 
 
-        public ConeAoEDrawData(Vector3 origin, byte baseEffectRange, byte xAxisModifier, float rotation, uint ringColour, uint fillColour, float ratio = .25f)
+        public ConeAoEDrawData(Vector3 origin, byte baseEffectRange, byte xAxisModifier, float rotation, float centralAngleBy2pi, uint ringColour, uint fillColour)
             : base(ringColour, fillColour)
         {
             Origin = origin;
@@ -23,13 +23,13 @@ namespace ActionEffectRange.Drawing.Types
             Rotation = rotation;
             End = new Vector3(Origin.X + Radius * MathF.Sin(Rotation), Origin.Y, Origin.Z + Radius * MathF.Cos(Rotation));
             
-            Ratio = ratio;
+            CentralAngleBy2pi = centralAngleBy2pi;
         }
 
         private void DrawHalfCone(ImDrawListPtr drawList, Vector2 projectedOrigin, Vector2 projectedEnd, int numSegments, bool drawClockwise)
         {
             var points = new Vector2[numSegments];
-            var rot = drawClockwise ? Rotation - Ratio * MathF.PI : Rotation + Ratio * MathF.PI;    // rotation +/- (ratio * 2 * pi) / 2
+            var rot = drawClockwise ? Rotation - CentralAngleBy2pi * MathF.PI : Rotation + CentralAngleBy2pi * MathF.PI;    // rotation +/- (CentralAngleBy2pi * 2 * pi) / 2
             drawList.PathLineTo(projectedOrigin);
             for (int i = 0; i < numSegments; i++)
             {
@@ -72,7 +72,7 @@ namespace ActionEffectRange.Drawing.Types
             drawList.AddCircleFilled(pe, Plugin.Config.Thickness * 2, RingColour);
 #endif      
 
-            var numSegmentsHalf = (int)(Ratio * Plugin.Config.NumSegments / 2);
+            var numSegmentsHalf = (int)(CentralAngleBy2pi * Plugin.Config.NumSegments / 2);
 
             DrawHalfCone(drawList, p0, pe, numSegmentsHalf, true);
             DrawHalfCone(drawList, p0, pe, numSegmentsHalf, false);
