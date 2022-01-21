@@ -49,13 +49,23 @@ namespace ActionEffectRange.Drawing
             ImGui.Begin("EffectRangeOverlay", 
                 ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoDecoration 
                 | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoInputs);
-            foreach (var data in drawData)
+            try
             {
-                if (data.ElapsedSeconds < Plugin.Config.DrawDelay) continue;
-                data.Draw(ImGui.GetWindowDrawList());
+                foreach (var data in drawData)
+                {
+                    if (data.ElapsedSeconds < Plugin.Config.DrawDelay) continue;
+                    data.Draw(ImGui.GetWindowDrawList());
+                }
             }
-            ImGui.End();
-            ImGui.PopStyleVar();
+            catch (System.Exception e)
+            {
+                PluginLog.Error($"{e}");
+            }
+            finally
+            {
+                ImGui.End();
+                ImGui.PopStyleVar();
+            }
 
             if (drawData.TryPeek(out var head) && head.ElapsedSeconds > Plugin.Config.DrawDelay + Plugin.Config.PersistSeconds) drawData.Dequeue();
         }

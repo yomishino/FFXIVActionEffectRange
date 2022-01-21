@@ -30,5 +30,5 @@ Once added, look for the plugin "ActionEffectRange" in Plugin Installer's availa
 ## Known Issues
 
 - Dancer's "Curing Waltz": Not showing effect range for additional effect (AoE heal around partner)
-- Some Cone AoE's effect ranges (width) are incorrect
+
 
