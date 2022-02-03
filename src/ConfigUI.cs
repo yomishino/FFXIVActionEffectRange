@@ -8,7 +8,7 @@ namespace ActionEffectRange
         {
             if (!Plugin.InConfig) return;
 
-            ImGui.SetNextWindowSize(new(500, 400));
+            ImGui.SetNextWindowSize(new(500, 400), ImGuiCond.FirstUseEver);
             if (ImGui.Begin("ActionEffectRange: Configuration"))
             {
                 ImGui.TreePush();
@@ -66,9 +66,9 @@ namespace ActionEffectRange
                     ImGui.Indent();
                     ImGui.Combo("##LargeDrawOpt", ref Plugin.Config.LargeDrawOpt, Configuration.LargeDrawOptions, Configuration.LargeDrawOptions.Length);
                     SetTooltip($"If set to any option other than \"{Configuration.LargeDrawOptions[0]}\", " +
-                        $"AoEs whose effect range is at least as large as the number specified below will be drawn (or not drawn at all) according to the set option." +
-                        $"\n\nThis only applies to Circle or Donut AoEs (including Ground-targeted ones). " +
-                        $"Other types of AoEs are not affected by this setting.");
+                        "AoEs whose effect range is at least as large as the number specified below will be drawn (or not drawn at all) according to the set option." +
+                        "\n\nThis only applies to Circle or Donut AoEs (including Ground-targeted ones). " +
+                        "Other types of AoEs are not affected by this setting.");
                     ImGui.Unindent();
                     if (Plugin.Config.LargeDrawOpt > 0)
                     {
@@ -91,7 +91,7 @@ namespace ActionEffectRange
                     ImGui.Checkbox("Draw outline (outer ring)", ref Plugin.Config.OuterRing);
                     if (Plugin.Config.OuterRing)
                     {
-                        DragIntWithTooltip("Thickness: ", ref Plugin.Config.Thickness, 1, 1, 50, 40, null);
+                        DragIntWithTooltip("Thickness: ", ref Plugin.Config.Thickness, 1, 1, 50, 60, null);
                         if (Plugin.Config.Thickness < 1) Plugin.Config.Thickness = 1;
                         if (Plugin.Config.Thickness > 50) Plugin.Config.Thickness = 50;
                     }
@@ -99,7 +99,7 @@ namespace ActionEffectRange
                     ImGui.Checkbox("Fill colour", ref Plugin.Config.Filled);
                     if (Plugin.Config.Filled)
                     {
-                        DragFloatWithTooltip("Opacity: ", ref Plugin.Config.FillAlpha, .01f, 0, 1, "%.2f", 40, null);
+                        DragFloatWithTooltip("Opacity: ", ref Plugin.Config.FillAlpha, .01f, 0, 1, "%.2f", 60, null);
                         if (Plugin.Config.FillAlpha < 0) Plugin.Config.FillAlpha = 0;
                         if (Plugin.Config.FillAlpha > 1) Plugin.Config.FillAlpha = 1;
                     }
@@ -116,9 +116,9 @@ namespace ActionEffectRange
                     ImGui.NewLine();
 
                     ImGui.TreePush();
-                    DragFloatWithTooltip("Delay before drawing (sec): ", ref Plugin.Config.DrawDelay, .1f, 0, 2, "%.3f", 50,
+                    DragFloatWithTooltip("Delay before drawing (sec): ", ref Plugin.Config.DrawDelay, .1f, 0, 2, "%.3f", 80,
                         "Delay (in seconds) to wait immediately after using an action before drawing the effect range.");
-                    DragFloatWithTooltip("Remove drawing after time (sec): ", ref Plugin.Config.PersistSeconds, .1f, .1f, 5, "%.3f", 50,
+                    DragFloatWithTooltip("Remove drawing after time (sec): ", ref Plugin.Config.PersistSeconds, .1f, .1f, 5, "%.3f", 80,
                         "Allow the effect range drawn to last for the given time (in seconds) before erased from screen.");
                     ImGui.TreePop();
                 }

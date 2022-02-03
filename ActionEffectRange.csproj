@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Authors>yomishino</Authors>
-    <Version>0.1.3.3</Version>
+    <Version>0.1.3.4</Version>
     <Description>A FFXIV Dalamud plugin that provides a visual cue on the effect range of the AoE action just used.</Description>
     <PackageProjectUrl></PackageProjectUrl>
     <Configurations>Debug;Release;TestRelease</Configurations>
