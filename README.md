@@ -8,9 +8,6 @@ such as where has the action landed and how large an area it covered.
 
 ## How to Install
 
-_:warning: This plugin is currently only available as a Testing build._
-_Please install it **only** if you are comfortable with it still being under testing._
-
 [XIVLauncher](https://github.com/goatcorp/FFXIVQuickLauncher) is required to install and run the plugin.
 
 Add my [Dalamud plugin repo](https://github.com/yomishino/MyDalamudPlugins) to Dalamud's Custom Plugin Repositories.
