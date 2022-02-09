@@ -54,6 +54,8 @@ namespace ActionEffectRange.Drawing
                 foreach (var data in drawData)
                 {
                     if (data.ElapsedSeconds < Plugin.Config.DrawDelay) continue;
+                    // Unset the AntiAliasedFill flag so compound shapes won't have ugly lines when filled
+                    ImGui.GetWindowDrawList().Flags &= ~ImDrawListFlags.AntiAliasedFill;
                     data.Draw(ImGui.GetWindowDrawList());
                 }
             }
