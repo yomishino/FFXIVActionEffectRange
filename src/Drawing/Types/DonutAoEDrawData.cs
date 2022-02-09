@@ -26,9 +26,6 @@ namespace ActionEffectRange.Drawing.Types
             var innerPoints = new Vector2[Plugin.Config.NumSegments];
             var seg = 2 * MathF.PI / Plugin.Config.NumSegments;
 
-            var lastValidOuter = new Vector2(float.NaN, float.NaN);
-            var lastValidInner = new Vector2(float.NaN, float.NaN);
-            var pad = new Vector2(Plugin.Config.Thickness, Plugin.Config.Thickness) / 2;
             for (int i = 0; i < Plugin.Config.NumSegments; i++)
             {
                 Projection.WorldToScreen(
@@ -36,39 +33,40 @@ namespace ActionEffectRange.Drawing.Types
                         Centre.Y,
                         Centre.Z + Radius * MathF.Cos(i * seg)),
                     out var pOuter, out var prOuter);
-
-                // Dont add points that may be projected to weird positions
-                if (prOuter.Z < -.1f)
-                {
-                    outerPoints[i] = new(float.NaN, float.NaN);
-                    innerPoints[i] = new(float.NaN, float.NaN);
-                }
-                else
-                {
-                    Projection.WorldToScreen(
+                // Don't add points that may be projected to weird positions
+                outerPoints[i] = prOuter.Z < -.5f ? new(float.NaN, float.NaN) : pOuter;
+                Projection.WorldToScreen(
                     new(Centre.X + InnerRadius * MathF.Sin(i * seg),
                         Centre.Y,
                         Centre.Z + InnerRadius * MathF.Cos(i * seg)),
-                    out var pInner, out var _);
-                    outerPoints[i] = pOuter;
-                    innerPoints[i] = pInner;
+                    out var pInner, out var prInner);
+                innerPoints[i] = prInner.Z < -.5f ? new(float.NaN, float.NaN) : pInner;
+            }
 
-                    if (!float.IsNaN(lastValidInner.X) && !float.IsNaN(lastValidOuter.X) 
-                        && Plugin.Config.Filled && (Plugin.Config.LargeDrawOpt == 0 || Radius < Plugin.Config.LargeThreshold))
-                        drawList.AddQuadFilled(lastValidInner, lastValidOuter, pOuter, pInner, FillColour);
-                    
-                    lastValidOuter = pOuter - pad;
-                    lastValidInner = pInner - pad;
+            if (Plugin.Config.Filled && (Plugin.Config.LargeDrawOpt == 0 || Radius < Plugin.Config.LargeThreshold))
+            {
+                for (int i = 0; i < Plugin.Config.NumSegments - 1; i++)
+                {
+                    var j = i + 1;
+                    if (!float.IsNaN(outerPoints[i].X) && !float.IsNaN(outerPoints[j].X)
+                        && !float.IsNaN(innerPoints[i].X) && !float.IsNaN(innerPoints[j].X))
+                        drawList.AddQuadFilled(outerPoints[i], outerPoints[j], innerPoints[j], innerPoints[i], FillColour);
                 }
+                if (!float.IsNaN(outerPoints[0].X) && !float.IsNaN(outerPoints[^1].X)
+                    && !float.IsNaN(innerPoints[0].X) && !float.IsNaN(innerPoints[^1].X))
+                    drawList.AddQuadFilled(outerPoints[0], outerPoints[^1], innerPoints[^1], innerPoints[0], FillColour);
             }
 
             if (Plugin.Config.OuterRing)
             {
-                foreach (var p in innerPoints)
-                    if (!float.IsNaN(p.X)) drawList.PathLineTo(p);
+                // outer
+                for (int i = 0; i < Plugin.Config.NumSegments; i++)
+                    if (!float.IsNaN(outerPoints[i].X)) drawList.PathLineTo(outerPoints[i]);
                 drawList.PathStroke(RingColour, ImDrawFlags.Closed, Plugin.Config.Thickness);
-                foreach (var p in outerPoints)
-                    if (!float.IsNaN(p.X)) drawList.PathLineTo(p);
+
+                // inner
+                for (int i = 0; i < Plugin.Config.NumSegments; i++)
+                    if (!float.IsNaN(innerPoints[i].X)) drawList.PathLineTo(innerPoints[i]);
                 drawList.PathStroke(RingColour, ImDrawFlags.Closed, Plugin.Config.Thickness);
             }
         }
