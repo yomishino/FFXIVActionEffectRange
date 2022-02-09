@@ -121,6 +121,14 @@ namespace ActionEffectRange
                     DragFloatWithTooltip("Remove drawing after time (sec): ", ref Plugin.Config.PersistSeconds, .1f, .1f, 5, "%.3f", 80,
                         "Allow the effect range drawn to last for the given time (in seconds) before erased from screen.");
                     ImGui.TreePop();
+
+                    ImGui.NewLine();
+                    ImGui.Separator();
+                    ImGui.NewLine();
+
+                    ImGui.TreePush();
+                    ImGui.Checkbox($"[DEBUG] Log debug info to Dalamud Console", ref Plugin.Config.LogDebug);
+                    ImGui.TreePop();
                 }
 
                 ImGui.NewLine();

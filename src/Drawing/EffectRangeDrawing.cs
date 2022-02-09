@@ -67,15 +67,18 @@ namespace ActionEffectRange.Drawing
                 ImGui.PopStyleVar();
             }
 
-            if (drawData.TryPeek(out var head) && head.ElapsedSeconds > Plugin.Config.DrawDelay + Plugin.Config.PersistSeconds) drawData.Dequeue();
+            while (drawData.TryPeek(out var head) && head.ElapsedSeconds > Plugin.Config.DrawDelay + Plugin.Config.PersistSeconds) drawData.Dequeue();
         }
 
         public static void AddEffectRangeToDraw(EffectRangeData effectRangeData, Vector3 originPos, Vector3 targetPos, float rotation)
         {
-            if (!Plugin.IsPlayerLoaded) return;
-#if DEBUG
-            PluginLog.Debug($"$AddEffectRangeToDraw: {effectRangeData.ActionId}, {effectRangeData.AoEType}, orig={originPos}, target={targetPos}");
-#endif
+            Plugin.LogUserDebug($"AddEffectRangeToDraw => {effectRangeData.ActionId}, {effectRangeData.AoEType}, orig={originPos}, target={targetPos}");
+            if (!Plugin.IsPlayerLoaded) 
+            {
+                Plugin.LogUserDebug($"---EffectRangeData not added to draw: Player is not loaded");
+                return;
+            }
+
             if (effectRangeData.IsHarmfulAction && !Plugin.Config.DrawHarmful) return;
             if (!effectRangeData.IsHarmfulAction && !Plugin.Config.DrawBeneficial) return;
             uint ringCol = effectRangeData.IsHarmfulAction ? harmfulRingColour : beneficialRingColour;
@@ -105,7 +108,9 @@ namespace ActionEffectRange.Drawing
                 case ActionAoEType.Donut:
                     drawData.Enqueue(new DonutAoEDrawData(targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, effectRangeData.AdditionalEffectRange, ringCol, fillCol));
                     break;
-                default: return;
+                default:
+                    PluginLog.Error($"Failed to create and queue DrawData for action#{effectRangeData.ActionId}: Unknown AoE Type {effectRangeData.AoEType}");
+                    return;
             }
         }
 

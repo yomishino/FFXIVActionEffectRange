@@ -44,6 +44,8 @@ namespace ActionEffectRange
          * 
          */
 
+        public bool LogDebug = false;
+
 
         public void Save()
         {

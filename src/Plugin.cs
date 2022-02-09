@@ -122,6 +122,11 @@ namespace ActionEffectRange
             //Enabled = Config.Enabled;
         }
 
+        public static void LogUserDebug(string msg)
+        {
+            if (Config.LogDebug) Dalamud.Logging.PluginLog.Debug(msg);
+        }
+
 
         public static bool IsPlayerLoaded => ClientState.LocalContentId != 0 && ClientState.LocalPlayer != null;
 

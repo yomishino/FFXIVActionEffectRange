@@ -21,20 +21,21 @@ namespace ActionEffectRange.Actions
         private static void SendActionDetour(long targetObjectId, byte actionType, uint actionId, ushort sequence, long a5, long a6, long a7, long a8, long a9)
         {
             SendActionHook!.Original(targetObjectId, actionType, actionId, sequence, a5, a6, a7, a8, a9);
+            Plugin.LogUserDebug($"SendAction => target={targetObjectId:X}, action={actionId}, type={actionType}, seq={sequence}");
 #if DEBUG
-            PluginLog.Debug($"SendAction: targetId={targetObjectId:X}, actionType={actionType}, actionId={actionId}, seq={sequence}, a5={a5:X}, a6={a6:X}, a7={a7:X}, a8={a8:X}, a9={a9:X}");
-            PluginLog.Debug($"---AcMgr: currentSeq{CurrentSeq}, lastRecSeq={LastRecievedSeq}");
+            PluginLog.Debug($"** SendAction: targetId={targetObjectId:X}, actionType={actionType}, actionId={actionId}, seq={sequence}, a5={a5:X}, a6={a6:X}, a7={a7:X}, a8={a8:X}, a9={a9:X}");
+            PluginLog.Debug($"** ---AcMgr: currentSeq{CurrentSeq}, lastRecSeq={LastRecievedSeq}");
 #endif
             if (!Plugin.IsPlayerLoaded || !ShouldProcessAction(actionType, actionId)) return;
 
             var originalData = ActionData.GetActionEffectRangeDataRaw(actionId);
             if (originalData == null)
             {
-                PluginLog.Error($"SendAction: No excel row found for action of id {actionId}");
+                PluginLog.Error($"Cannot get original data for action {actionId}: No excel row found");
                 return;
             }
 #if DEBUG
-            PluginLog.Debug($"---Action: id={actionId}, castType={originalData.CastType}({originalData.AoEType}), effectRange={originalData.EffectRange}, xAxisModifier={originalData.XAxisModifier}");
+            PluginLog.Debug($"** ---Action: id={actionId}, castType={originalData.CastType}({originalData.AoEType}), effectRange={originalData.EffectRange}, xAxisModifier={originalData.XAxisModifier}");
 #endif
 
             bool replacedAction = false;
@@ -46,12 +47,13 @@ namespace ActionEffectRange.Actions
                 if (pet != null)
                 {
 #if DEBUG
-                    PluginLog.Debug($"---check pet/pet-like action: pet objId={pet.ObjectId:X}, pos={pet.Position}");
+                    PluginLog.Debug($"** ---check pet/pet-like action: pet objId={pet.ObjectId:X}, pos={pet.Position}");
 #endif
 
                     if (ActionData.CheckPetLikeAction(originalData, out var petLikeActionEffectRangeDataSet) && petLikeActionEffectRangeDataSet != null)
                     {
                         replacedAction = true;
+                        Plugin.LogUserDebug($"---Replacing action#{actionId} to pet-like actions");
                         foreach (var data in petLikeActionEffectRangeDataSet)
                         {
                             if (data == null) continue;
@@ -64,11 +66,9 @@ namespace ActionEffectRange.Actions
                             {
                                 var target = Plugin.ObejctTable.SearchById((uint)targetObjectId);
                                 if (target != null) recordedPetLikeActionEffectToWait[data.ActionId].Add(new(data, pet.Position, target.Position, pet.Rotation, true));
-                                else PluginLog.Error($"SendAction: Cannot find valid target of id {targetObjectId:X} for action {actionId}");
+                                else PluginLog.Error($"Cannot find valid target of id {targetObjectId:X} for action {actionId}");
                             }
-    #if DEBUG
-                            PluginLog.Debug($"---Found possible pet-like action: actionId={data.ActionId}");
-    #endif
+                            Plugin.LogUserDebug($"---Recorded possible pet-like action {data.ActionId} to wait");
                         }
                     }
 
@@ -76,6 +76,7 @@ namespace ActionEffectRange.Actions
                         && petActionEffectRangeDataSet != null)
                     {
                         replacedAction = true;
+                        Plugin.LogUserDebug($"---Replacing action#{actionId} to pet actions");
                         foreach (var data in petActionEffectRangeDataSet)
                         {
                             if (data == null) continue;
@@ -88,11 +89,9 @@ namespace ActionEffectRange.Actions
                             {
                                 var target = Plugin.ObejctTable.SearchById((uint)targetObjectId);
                                 if (target != null) recordedPetActionEffectToWait[data.ActionId].Add(new(data, pet.Position, target.Position, pet.Rotation, true));
-                                else PluginLog.Error($"SendAction: Cannot find valid target of id {targetObjectId:X} for action {actionId}");
+                                else PluginLog.Error($"Cannot find valid target of id {targetObjectId:X} for action {actionId}");
                             }
-#if DEBUG
-                            PluginLog.Debug($"---Found possible pet action: actionId={data.ActionId}");
-#endif
+                            Plugin.LogUserDebug($"---Recorded possible pet action {data.ActionId} to wait");
                         }
                     }
                 }
@@ -101,7 +100,9 @@ namespace ActionEffectRange.Actions
             if (replacedAction) return;
 
             var updatedEffectRangeDataSet = ActionData.CheckCornerCasesAndGetUpdatedEffectRangeData(originalData);
-
+            
+            Plugin.LogUserDebug($"---Updated action#{actionId} effect range data: {updatedEffectRangeDataSet.Count}");
+            
             recordedActionSequence[sequence] = new(sequence);
 
             foreach (var data in updatedEffectRangeDataSet)
@@ -115,7 +116,7 @@ namespace ActionEffectRange.Actions
                 {
                     var target = Plugin.ObejctTable.SearchById((uint)targetObjectId);
                     if (target != null) recordedActionSequence[sequence].Add(new(data, Plugin.ClientState.LocalPlayer!.Position, target.Position, Plugin.ClientState.LocalPlayer!.Rotation, false));
-                    else PluginLog.Error($"SendAction: Cannot find valid target of id {targetObjectId:X} for action {actionId}");
+                    else PluginLog.Error($"Cannot find valid target of id {targetObjectId:X} for action {actionId}");
                 }
             }
         }
@@ -128,7 +129,7 @@ namespace ActionEffectRange.Actions
         {
             var ret = UseActionHook!.Original(actionManager, actionType, actionId, targetObjectId, param, useType, pvp, a8);
 #if DEBUG
-            PluginLog.Debug($"UseAction: actionType={actionType}, actionId={actionId}, targetId={targetObjectId:X}, param={param}, useType={useType}, pvp={pvp}, a8={a8:X}; ret={ret}");
+            PluginLog.Debug($"** UseAction: actionType={actionType}, actionId={actionId}, targetId={targetObjectId:X}, param={param}, useType={useType}, pvp={pvp}, a8={a8:X}; ret={ret}");
 #endif
             return ret;
         }
@@ -139,29 +140,26 @@ namespace ActionEffectRange.Actions
         {
             var ret = UseActionLocationHook!.Original(actionManager, actionType, actionId, targetObjectId, location, param);
 #if DEBUG
-            PluginLog.Debug($"UseActionLocation: actionType={actionType}, actionId={actionId}, targetId={targetObjectId:X}, loc={(Vector3)Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(location)} param={param}; ret={ret}");
+            PluginLog.Debug($"** UseActionLocation: actionType={actionType}, actionId={actionId}, targetId={targetObjectId:X}, loc={(Vector3)Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(location)} param={param}; ret={ret}");
 #endif
             if (ret == 0 || !Plugin.IsPlayerLoaded || !Plugin.Config.DrawGT || !ShouldProcessAction(actionType, actionId)) return ret;
             var seq = CurrentSeq;
             if (recordedActionSequence.ContainsKey(seq)) return ret;
 
+            Plugin.LogUserDebug($"UseActionLocation => Possible GT action #{actionId} type={actionType} at Seq={CurrentSeq}, using info from UseActionLocation");
+
             var originalData = ActionData.GetActionEffectRangeDataRaw(actionId);
             if (originalData == null)
             {
-                PluginLog.Error($"SendAction: No excel row found for action of id {actionId}");
+                PluginLog.Error($"Cannot get original data for action {actionId}: No excel row found");
                 return ret;
             }
 #if DEBUG
-            PluginLog.Debug($"---Action: id={actionId}, castType={originalData.CastType}({originalData.AoEType}), effectRange={originalData.EffectRange}, xAxisModifier={originalData.XAxisModifier}");
-            PluginLog.Debug($"---Using info from UseActionLocation for GT action #{actionId}");
+            PluginLog.Debug($"** ---Action: id={actionId}, castType={originalData.CastType}({originalData.AoEType}), effectRange={originalData.EffectRange}, xAxisModifier={originalData.XAxisModifier}");
 #endif
-            var updatedEffectRangeDataSet = ActionData.CheckCornerCasesAndGetUpdatedEffectRangeData(originalData);
-            if (updatedEffectRangeDataSet == null)
-            {
-                PluginLog.Error($"SendAction: No excel row found for action of id {actionId}");
-                return ret;
-            }
 
+            var updatedEffectRangeDataSet = ActionData.CheckCornerCasesAndGetUpdatedEffectRangeData(originalData);
+            Plugin.LogUserDebug($"---Updated action#{actionId} effect range data: {updatedEffectRangeDataSet.Count}");
             foreach (var data in updatedEffectRangeDataSet)
             {
                 if (!data.IsGTAction || !ShouldDrawForEffectRange(data.CastType, data.EffectRange)) continue;
@@ -180,7 +178,7 @@ namespace ActionEffectRange.Actions
         {
             ReceiveActionEffectHook!.Original(sourceObjectId, sourceActor, position, effectHeader, effectArray, effectTrail);
 #if DEBUG
-            PluginLog.Debug($"ReceiveActionEffect: src={sourceObjectId:X}, pos={(Vector3)Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position)}; AcMgr: CurrentSeq={CurrentSeq}, LastRecSeq={LastRecievedSeq}");
+            PluginLog.Debug($"** ReceiveActionEffect: src={sourceObjectId:X}, pos={(Vector3)Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position)}; AcMgr: CurrentSeq={CurrentSeq}, LastRecSeq={LastRecievedSeq}");
 #endif
 
             if (!Plugin.IsPlayerLoaded) return;
@@ -191,14 +189,16 @@ namespace ActionEffectRange.Actions
                 return;
             }
             var header = Marshal.PtrToStructure<ActionEffectHeader>(effectHeader);
+            Plugin.LogUserDebug($"ReceiveActionEffect => source={sourceObjectId:X}, target={header.TargetObjectId:X}, action={header.ActionId}, seq={header.Sequence}");
 #if DEBUG
-            PluginLog.Debug($"---effectHeader: target={header.TargetObjectId:X}, action={header.ActionId}, unkObjId={header.UnkObjectId:X}, seq={header.Sequence}, unk={header.Unk_1A:X}");
+            PluginLog.Debug($"** ---effectHeader: target={header.TargetObjectId:X}, action={header.ActionId}, unkObjId={header.UnkObjectId:X}, seq={header.Sequence}, unk={header.Unk_1A:X}");
 #endif
 
             if (header.Sequence == 0 && sourceObjectId == Plugin.BuddyList.PetBuddy?.GameObject?.ObjectId)
             {
                 if (recordedPetLikeActionEffectToWait.TryGetValue(header.ActionId, out var petLikeSeqInfos))
                 {
+                    Plugin.LogUserDebug($"---Matched recorded pet-like action #{header.ActionId}");
                     foreach (var info in petLikeSeqInfos)
                     {
                         EffectRangeDrawing.AddEffectRangeToDraw(info.EffectRangeData, info.OriginPosition,
@@ -209,6 +209,7 @@ namespace ActionEffectRange.Actions
                 }
                 if (Plugin.Config.DrawOwnPets && recordedPetActionEffectToWait.TryGetValue(header.ActionId, out var petSeqInfos))
                 {
+                    Plugin.LogUserDebug($"---Matched recorded pet action #{header.ActionId}");
                     foreach (var info in petSeqInfos)
                     {
                         EffectRangeDrawing.AddEffectRangeToDraw(info.EffectRangeData, info.OriginPosition,
@@ -220,6 +221,7 @@ namespace ActionEffectRange.Actions
             }
             else if (recordedActionSequence.TryGetValue(header.Sequence, out var seqInfos))
             {
+                if (seqInfos.Count > 0) Plugin.LogUserDebug($"---Matched recorded action #{header.ActionId} of seq {header.Sequence}");
                 foreach (var info in seqInfos)
                 {
                     EffectRangeDrawing.AddEffectRangeToDraw(info.EffectRangeData, info.OriginPosition,
@@ -252,9 +254,10 @@ namespace ActionEffectRange.Actions
         // TODO: also check blacklist
         private static bool ShouldDrawForAction(uint actionId) => !ActionData.IsRuledOutAction(actionId);
 
-        // Only check for circle (2) and donut (10)
+        // Only check for circle (2) and donut (10) in Large EffectRange check
         private static bool ShouldDrawForEffectRange(byte castType, byte effectRange) =>
-            effectRange > 0 && (!(castType == 2 || castType == 10) || (Plugin.Config.LargeDrawOpt != 1 || effectRange < Plugin.Config.LargeThreshold));
+            effectRange > 0 && castType > 1 
+            && (!(castType == 2 || castType == 10) || (Plugin.Config.LargeDrawOpt != 1 || effectRange < Plugin.Config.LargeThreshold));
 
         private static bool ShouldProcessAction(byte actionType, uint actionId)
             => Plugin.IsPlayerLoaded && ShouldDrawForActionType(actionType) && ShouldDrawForAction(actionId);
@@ -292,6 +295,12 @@ namespace ActionEffectRange.Actions
             UseActionLocationHook ??= new Hook<UseActionLocationDelegate>(Plugin.SigScanner.ScanText("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 81 FB FB 1C 00 00"), UseActionLocationDetour);
             ReceiveActionEffectHook ??= new Hook<ReceiveActionEffectDelegate>(Plugin.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B 8D F0 03 00 00"), ReceiveActionEffectDetour);
             SendActionHook ??= new Hook<SendActionDelegate>(Plugin.SigScanner.ScanText("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? F3 0F 10 3D ?? ?? ?? ?? 48 8D 4D BF"), SendActionDetour);
+
+            PluginLog.Information("ActionWatcher init:\n" +
+                $"\tactionMgrPtr @{actionMgrPtr:X}\n" +
+                $"\tUseActionLoactionHook @{UseActionLocationHook?.Address ?? IntPtr.Zero:X}\n" +
+                $"\tReceiveActionEffectHook @{ReceiveActionEffectHook?.Address ?? IntPtr.Zero:X}\n" +
+                $"\tSendActionHook @{SendActionHook?.Address ?? IntPtr.Zero:X}");
         }
 
         public static void Enable()
