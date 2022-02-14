@@ -1,13 +1,26 @@
-﻿using ImGuiNET;
+﻿using ActionEffectRange.Actions;
+using Dalamud.Interface;
+using Dalamud.Interface.Components;
+using ImGuiNET;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ActionEffectRange
 {
-    public class ConfigUi
+    public static partial class ConfigUi
     {
         public static void Draw()
         {
             if (!Plugin.InConfig) return;
 
+            DrawMainConfigUi();
+            DrawActionBlacklistConfigUi();
+
+            Plugin.RefreshConfig();
+        }
+
+        private static void DrawMainConfigUi()
+        {
             ImGui.SetNextWindowSize(new(500, 400), ImGuiCond.FirstUseEver);
             if (ImGui.Begin("ActionEffectRange: Configuration"))
             {
@@ -72,7 +85,7 @@ namespace ActionEffectRange
                     ImGui.Unindent();
                     if (Plugin.Config.LargeDrawOpt > 0)
                     {
-                        InputIntWithTooltip("Apply to actions with effect range >= ", ref Plugin.Config.LargeThreshold, 1, 1, 0, 80, 
+                        InputIntWithTooltip("Apply to actions with effect range >= ", ref Plugin.Config.LargeThreshold, 1, 1, 0, 80,
                             "The setting will be applied to actions with at least the specified effect range." +
                             "\nFor example, if set to 15, AoE such as Medica and Medica II will be affected by the setting, but not Cure III.");
                         if (Plugin.Config.LargeThreshold < 0) Plugin.Config.LargeThreshold = 0;
@@ -127,6 +140,15 @@ namespace ActionEffectRange
                     ImGui.NewLine();
 
                     ImGui.TreePush();
+                    if (ImGui.Button("Edit Action Blacklist"))
+                        isActionBlacklistConfigUiActive = true;
+                    ImGui.TreePop();
+
+                    ImGui.NewLine();
+                    ImGui.Separator();
+                    ImGui.NewLine();
+
+                    ImGui.TreePush();
                     ImGui.Checkbox($"[DEBUG] Log debug info to Dalamud Console", ref Plugin.Config.LogDebug);
                     ImGui.TreePop();
                 }
@@ -142,9 +164,17 @@ namespace ActionEffectRange
                 }
 
                 ImGui.End();
-
-                Plugin.RefreshConfig();
             }
+        }
+
+
+        private static string GetActionDescription(Lumina.Excel.GeneratedSheets.Action row)
+        {
+            var classjobRow = row.ClassJob.Value;
+            var classjob = classjobRow != null && classjobRow.RowId > 0
+                ? $" [{classjobRow.Abbreviation}]" : string.Empty;
+            var pvp = row.IsPvP ? " [PvP]" : string.Empty;
+            return $"#{row.RowId} {row.Name}{classjob}{pvp}";
         }
 
 
@@ -191,5 +221,155 @@ namespace ActionEffectRange
             if (tooltip != null) SetTooltip(tooltip);
         }
 
+    }
+
+
+    public static partial class ConfigUi
+    {
+        private const string actionBlacklistConfigUiName
+            = "ActionEffectRange: Configuration - Action Blacklist";
+
+        private static bool isActionBlacklistConfigUiActive;
+        private static bool isActionBlacklistEdited;
+        private static bool shouldShowActionBlacklistMatches;
+        private static string actionBlacklistInput = string.Empty;
+        private static List<Lumina.Excel.GeneratedSheets.Action>? actionBlacklistMatchedActions = null;
+        private static Lumina.Excel.GeneratedSheets.Action? selectedActionBlacklistActionRow = null;
+
+
+        private static void DrawActionBlacklistConfigUi()
+        {
+            if (isActionBlacklistConfigUiActive)
+                ImGui.OpenPopup(actionBlacklistConfigUiName);
+            else
+            {
+                ClearActionBlacklistInput();
+                return;
+            }
+            ImGui.SetNextWindowSize(ImGuiHelpers.ScaledVector2(400, 400), ImGuiCond.FirstUseEver);
+            if (ImGui.BeginPopupModal(actionBlacklistConfigUiName, ref isActionBlacklistConfigUiActive))
+            {
+                ImGui.TextWrapped("Action in this blacklist will not be drawn.");
+                ImGui.TextWrapped("You can use this blacklist to prevent a particular action from being drawn regardless of other settings.");
+                ImGui.NewLine();
+
+                if (ImGui.BeginTable("ActionEffectRange_Tbl_ActionBlacklistConfig", 4, ImGuiTableFlags.BordersH | ImGuiTableFlags.SortMulti))
+                {
+                    ImGui.TableSetupColumn("Action ID", ImGuiTableColumnFlags.WidthFixed);
+                    ImGui.TableSetupColumn("Action", ImGuiTableColumnFlags.WidthStretch);
+                    ImGui.TableSetupColumn("ClassJob", ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.WidthFixed);
+                    ImGui.TableSetupColumn("##Remove", ImGuiTableColumnFlags.NoSort | ImGuiTableColumnFlags.WidthFixed, 
+                        UiBuilder.IconFont.FontSize * ImGuiHelpers.GlobalScale * 2);
+                    ImGui.TableHeadersRow();
+
+                    foreach (var actionId in Plugin.Config.ActionBlacklist)
+                    {
+                        var excelRow = ActionData.GetActionExcelRow(actionId);
+                        ImGui.TableNextRow();
+                        ImGui.TableSetColumnIndex(0);
+                        ImGui.Text(actionId.ToString());
+                        ImGui.TableNextColumn();
+                        ImGui.Text(excelRow?.Name ?? string.Empty);
+                        ImGui.TableNextColumn();
+                        ImGui.Text(excelRow?.ClassJob.Value?.Name ?? string.Empty);
+                        ImGui.TableNextColumn();
+                        if (ImGuiComponents.IconButton((int)actionId, FontAwesomeIcon.Minus))
+                        {
+                            SetTooltip("Unblacklist");
+                            ActionData.ActionBlacklist.Remove(actionId);
+                            isActionBlacklistEdited = true;
+                        }
+                    }
+                    ImGui.TableNextRow();   // dummy
+                    ImGui.EndTable();
+                }
+                ImGui.NewLine();
+
+                ImGui.PushID("ActionBlacklistInputAction");
+                ImGui.Text("Search an action to add");
+                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                var input = actionBlacklistInput;
+                ImGui.InputTextWithHint("##actionBlacklistRawInput",
+                    "Search by Action ID / Action Name...", ref input, 64);
+                if (ImGui.IsItemActivated() && !string.IsNullOrWhiteSpace(input))
+                    shouldShowActionBlacklistMatches = true;
+                if (ImGui.IsAnyMouseDown() && !ImGui.IsAnyItemHovered()) shouldShowActionBlacklistMatches = false;
+                if (actionBlacklistInput != input)
+                {
+                    actionBlacklistInput = input;
+                    actionBlacklistMatchedActions = string.IsNullOrWhiteSpace(input) ? null
+                        : ActionData.GetAllPartialMatchActionExcelRows(
+                            actionBlacklistInput, true, int.MaxValue,
+                            a => a != null && a.IsPlayerAction && ActionData.IsPlayerCombatAction(a))?
+                            .ToList();
+                    shouldShowActionBlacklistMatches = actionBlacklistMatchedActions != null && actionBlacklistMatchedActions.Any();
+                }
+                if (shouldShowActionBlacklistMatches)
+                {
+                    if (ImGui.BeginChildFrame(1, new(ImGui.GetContentRegionAvail().X, ImGui.GetTextLineHeight() * 10),
+                        ImGuiWindowFlags.NoFocusOnAppearing))
+                    {
+                        if (actionBlacklistMatchedActions != null)
+                        {
+                            foreach (var row in actionBlacklistMatchedActions)
+                            {
+                                if (ImGui.Selectable(GetActionDescription(row)))
+                                {
+                                    selectedActionBlacklistActionRow = row;
+                                    shouldShowActionBlacklistMatches = false;
+                                }
+                            }
+                        }
+                        ImGui.EndChildFrame();
+                    }
+                }
+                ImGui.NewLine();
+
+                if (selectedActionBlacklistActionRow != null)
+                {
+                    ImGui.Text($"Add this action to Blacklist?");
+                    ImGui.Indent();
+                    ImGui.Text(GetActionDescription(selectedActionBlacklistActionRow));
+                    ImGui.Unindent();
+                    if (ImGuiComponents.IconButton(FontAwesomeIcon.Plus))
+                    {
+                        ActionData.ActionBlacklist.Add(selectedActionBlacklistActionRow.RowId);
+                        ClearActionBlacklistInput();
+                        isActionBlacklistEdited = true;
+                    }
+                    SetTooltip("Add new action");
+                    ImGui.SameLine();
+                    if (ImGuiComponents.IconButton(FontAwesomeIcon.Times))
+                            ClearActionBlacklistInput();
+                    SetTooltip("Clear new action");
+                }
+                else 
+                    ImGuiComponents.DisabledButton(FontAwesomeIcon.Plus);
+
+                ImGui.PopID();
+
+                ImGui.NewLine();
+                if (ImGui.Button("Close"))
+                {
+                    isActionBlacklistConfigUiActive = false;
+                    ImGui.CloseCurrentPopup();
+                }
+                ImGui.EndPopup();
+            }
+
+            if (isActionBlacklistEdited)
+            {
+                ActionData.ActionBlacklist.Save();
+                isActionBlacklistEdited = false;
+            }
+        }
+
+        private static void ClearActionBlacklistInput()
+        {
+            actionBlacklistInput = string.Empty;
+            shouldShowActionBlacklistMatches = false;
+            actionBlacklistMatchedActions = null;
+            selectedActionBlacklistActionRow = null;
+        }
     }
 }

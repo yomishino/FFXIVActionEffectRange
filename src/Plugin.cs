@@ -90,7 +90,7 @@ namespace ActionEffectRange
 
             ClientState.TerritoryChanged += CheckTerritory;
 
-            RefreshConfig();
+            RefreshConfig(true);
         }
 
         private static void InitializeCommands()
@@ -115,11 +115,14 @@ namespace ActionEffectRange
                 Enabled = Config.Enabled;
         }
 
-        internal static void RefreshConfig()
+        internal static void RefreshConfig(bool reloadSavedList = false)
         {
             EffectRangeDrawing.RefreshColour();
             CheckTerritory(null, ClientState.TerritoryType);
             //Enabled = Config.Enabled;
+
+            if (reloadSavedList)
+                ActionData.ActionBlacklist.Reload();
         }
 
         public static void LogUserDebug(string msg)
@@ -131,7 +134,8 @@ namespace ActionEffectRange
         public static bool IsPlayerLoaded => ClientState.LocalContentId != 0 && ClientState.LocalPlayer != null;
 
         public static bool IsPvPZone
-            => DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.TerritoryType>()?.GetRow(ClientState.TerritoryType)?.IsPvpZone ?? false;
+            => DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.TerritoryType>()?
+                .GetRow(ClientState.TerritoryType)?.IsPvpZone ?? false;
 
 
 

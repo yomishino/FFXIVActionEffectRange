@@ -249,18 +249,19 @@ namespace ActionEffectRange.Actions
         }
 
 
-        private static bool ShouldDrawForActionType(uint actionType) => actionType == 0x1 || actionType == 0xE; // pve 0x1, pvp 0xE
+        private static bool ShouldDrawForActionType(uint actionType) 
+            => actionType == 0x1 || actionType == 0xE; // pve 0x1, pvp 0xE
 
-        // TODO: also check blacklist
-        private static bool ShouldDrawForAction(uint actionId) => !ActionData.IsRuledOutAction(actionId);
+        private static bool ShouldDrawForAction(uint actionId)
+            => !(ActionData.IsRuledOutAction(actionId) || ActionData.IsActionBlacklisted(actionId));
+
+        private static bool ShouldProcessAction(byte actionType, uint actionId)
+            => ShouldDrawForActionType(actionType) && ShouldDrawForAction(actionId);
 
         // Only check for circle (2) and donut (10) in Large EffectRange check
         private static bool ShouldDrawForEffectRange(byte castType, byte effectRange) =>
             effectRange > 0 && castType > 1 
             && (!(castType == 2 || castType == 10) || (Plugin.Config.LargeDrawOpt != 1 || effectRange < Plugin.Config.LargeThreshold));
-
-        private static bool ShouldProcessAction(byte actionType, uint actionId)
-            => Plugin.IsPlayerLoaded && ShouldDrawForActionType(actionType) && ShouldDrawForAction(actionId);
 
 
         private static uint playerClassJob;

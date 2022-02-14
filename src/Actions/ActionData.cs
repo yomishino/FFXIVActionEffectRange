@@ -3,18 +3,26 @@ using ActionEffectRange.Actions.Enums;
 using System.Collections.Generic;
 using System.Linq;
 
+
 namespace ActionEffectRange.Actions
 {
     public static class ActionData
-    {   
-        // TODO: blacklist
-        //private static readonly HashSet<uint> blacklist;
+    {
+        public static readonly ActionBlacklist ActionBlacklist = new(Plugin.Config);
 
         public static readonly Lumina.Excel.ExcelSheet<Lumina.Excel.GeneratedSheets.Action>? ActionExcelSheet 
             = Plugin.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Action>();
 
         public static Lumina.Excel.GeneratedSheets.Action? GetActionExcelRow(uint actionId)
             => ActionExcelSheet?.GetRow(actionId);
+
+        public static IEnumerable<Lumina.Excel.GeneratedSheets.Action>? GetAllPartialMatchActionExcelRows
+            (string input, bool alsoMatchId, int maxCount, System.Func<Lumina.Excel.GeneratedSheets.Action, bool>? filter)
+            => ActionExcelSheet?.Where(row => row != null 
+                && (row.Name.RawString.Contains(input, System.StringComparison.CurrentCultureIgnoreCase)
+                || alsoMatchId && row.RowId.ToString().Contains(input))
+                && (filter == null || filter(row)))
+            .Take(maxCount);
 
         public static EffectRangeData? GetActionEffectRangeDataRaw(uint actionId)
         {
@@ -46,6 +54,10 @@ namespace ActionEffectRange.Actions
         public static ushort GetRecast100ms(Lumina.Excel.GeneratedSheets.Action actionRow)
             => actionRow.Recast100ms;
 
+        public static bool IsPlayerCombatAction(Lumina.Excel.GeneratedSheets.Action actionRow)
+            => (ActionCategory)actionRow.ActionCategory.Row
+            is ActionCategory.Ability or ActionCategory.AR or ActionCategory.Item
+            or ActionCategory.LB or ActionCategory.Spell or ActionCategory.WS;
 
         public static bool IsRuledOutAction(uint actionId) => RuledOutActions.HashSet.Contains(actionId);
 
@@ -89,5 +101,8 @@ namespace ActionEffectRange.Actions
             else if (effectRange == 6) return ConeAoEAngleMap.DefaultAngleBy2pi_Range6;
             else return ConeAoEAngleMap.DefaultAngleBy2pi_Range12;
         }
+
+        public static bool IsActionBlacklisted(uint actionId) 
+            => ActionBlacklist.Contains(actionId);
     }
 }

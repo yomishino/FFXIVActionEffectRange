@@ -37,12 +37,8 @@ namespace ActionEffectRange
         public float DrawDelay = .4f;
         public float PersistSeconds = 1;
 
-
-        // TODO: blacklist
-        /*
-         * BlackList    // dont draw specified action --- note those actions that are not used directly by player
-         * 
-         */
+        public uint[] ActionBlacklist = Array.Empty<uint>();
+        
 
         public bool LogDebug = false;
 
