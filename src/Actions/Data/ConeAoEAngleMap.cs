@@ -23,7 +23,6 @@ namespace ActionEffectRange.Actions.Data
             //new(25782, AngleBy2pi_120),     // kaeshi namikiri (SAM)
             new(24392, .5f),                // Grim Swathe (RPR)
             new(24384, .5f),                // Guillotine (RPR)
-            // TODO: 24397 && 24400
             new(24397, .5f),                // Grim Reaping (RPR)
             new(24400, .5f),                // Lemure's Scythe (RPR)
             new(7418, .25f),                // Flamethrower (MCH)

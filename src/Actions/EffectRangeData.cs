@@ -28,7 +28,7 @@ namespace ActionEffectRange.Actions
             Range = range;
             EffectRange = effectRange;
             CastType = castType;
-            AoEType = ActionData.GetActionAoEType(castType);
+            AoEType = (ActionAoEType)castType;
             XAxisModifier = xAxisModifier;
             AdditionalEffectRange = additionalEffectRange;
             RotationOffset = rotationOffset;

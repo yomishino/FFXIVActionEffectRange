@@ -19,12 +19,13 @@ namespace ActionEffectRange
         public Vector4 HarmfulColour = new(1, .5f, .5f, 1);
 
         public bool DrawOwnPets = true;
-
         public bool DrawGT = true;
+        public bool DrawEx = false;
         
         public int LargeDrawOpt = 0;    // 0 - normal, 1 - no draw, 2 - ring only
         public int LargeThreshold = 15;
-        [JsonIgnore] public static readonly string[] LargeDrawOptions = new string[] { "Draw normally", "Do not draw", "Draw outline (outer ring) only" };
+        [JsonIgnore] public static readonly string[] LargeDrawOptions 
+            = new string[] { "Draw normally", "Do not draw", "Draw outline (outer ring) only" };
 
         public bool OuterRing = true;
         public int Thickness = 2;

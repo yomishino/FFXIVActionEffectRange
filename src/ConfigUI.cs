@@ -70,9 +70,16 @@ namespace ActionEffectRange
                     ImGui.NewLine();
                     CheckboxWithTooltip("Enable drawing for your own pet's AoE actions", ref Plugin.Config.DrawOwnPets,
                         "If enabled, will also draw effect range for actions used by your own pet." +
-                        "\nThis only works for Summoner/Scholar.");
+                        "\nThis only affects Summoner/Scholar pet actions.");
                     CheckboxWithTooltip("Enable drawing for ground-targeted actions", ref Plugin.Config.DrawGT,
                         "If enabled, will also draw effect range for ground-targeted actions.");
+                    CheckboxWithTooltip("Enable drawing for Special/Artillery actions", ref Plugin.Config.DrawEx,
+                        "If enabled, will also draw effect range for actions of category " +
+                        $"\"{ActionData.GetActionCategoryName(Actions.Enums.ActionCategory.Special)}\" or " +
+                        $"\"{ActionData.GetActionCategoryName(Actions.Enums.ActionCategory.Artillery)}\"." +
+                        $"\n\nActions of these categories are generally available in certain contents/duties, " +
+                        $"\nafter you mount something or transformed into something, etc." +
+                        $"\n\nPlease note however, that effect range drawing for these actions may be very inaccurate.");
                     ImGui.NewLine();
 
                     ImGui.Text("Actions with large effect range: ");
@@ -166,7 +173,6 @@ namespace ActionEffectRange
                 ImGui.End();
             }
         }
-
 
         private static string GetActionDescription(Lumina.Excel.GeneratedSheets.Action row)
         {
@@ -300,7 +306,7 @@ namespace ActionEffectRange
                     actionBlacklistMatchedActions = string.IsNullOrWhiteSpace(input) ? null
                         : ActionData.GetAllPartialMatchActionExcelRows(
                             actionBlacklistInput, true, int.MaxValue,
-                            a => a != null && a.IsPlayerAction && ActionData.IsPlayerCombatAction(a))?
+                            a => a != null && ActionData.IsPlayerCombatAction(a))?
                             .ToList();
                     shouldShowActionBlacklistMatches = actionBlacklistMatchedActions != null && actionBlacklistMatchedActions.Any();
                 }

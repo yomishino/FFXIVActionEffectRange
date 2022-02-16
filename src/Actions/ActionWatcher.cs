@@ -1,4 +1,5 @@
-﻿using ActionEffectRange.Drawing;
+﻿using ActionEffectRange.Actions.Enums;
+using ActionEffectRange.Drawing;
 using Dalamud.Hooking;
 using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -34,6 +35,7 @@ namespace ActionEffectRange.Actions
                 PluginLog.Error($"Cannot get original data for action {actionId}: No excel row found");
                 return;
             }
+            if (!ShouldDrawForActionCategory(originalData.Category)) return;
 #if DEBUG
             PluginLog.Debug($"** ---Action: id={actionId}, castType={originalData.CastType}({originalData.AoEType}), effectRange={originalData.EffectRange}, xAxisModifier={originalData.XAxisModifier}");
 #endif
@@ -154,6 +156,7 @@ namespace ActionEffectRange.Actions
                 PluginLog.Error($"Cannot get original data for action {actionId}: No excel row found");
                 return ret;
             }
+            if (!ShouldDrawForActionCategory(originalData.Category)) return ret;
 #if DEBUG
             PluginLog.Debug($"** ---Action: id={actionId}, castType={originalData.CastType}({originalData.AoEType}), effectRange={originalData.EffectRange}, xAxisModifier={originalData.XAxisModifier}");
 #endif
@@ -258,10 +261,14 @@ namespace ActionEffectRange.Actions
         private static bool ShouldProcessAction(byte actionType, uint actionId)
             => ShouldDrawForActionType(actionType) && ShouldDrawForAction(actionId);
 
+        private static bool ShouldDrawForActionCategory(ActionCategory actionCategory)
+            => ActionData.IsCombatActionCategory(actionCategory)
+            || Plugin.Config.DrawEx && ActionData.IsSpecialOrArtilleryActionCategory(actionCategory);
+
         // Only check for circle (2) and donut (10) in Large EffectRange check
-        private static bool ShouldDrawForEffectRange(byte castType, byte effectRange) =>
-            effectRange > 0 && castType > 1 
-            && (!(castType == 2 || castType == 10) || (Plugin.Config.LargeDrawOpt != 1 || effectRange < Plugin.Config.LargeThreshold));
+        private static bool ShouldDrawForEffectRange(byte castType, byte effectRange)
+            => effectRange > 0 && (!(castType == 2 || castType == 10) 
+                || Plugin.Config.LargeDrawOpt != 1 || effectRange < Plugin.Config.LargeThreshold);
 
 
         private static uint playerClassJob;

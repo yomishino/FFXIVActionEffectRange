@@ -88,15 +88,18 @@ namespace ActionEffectRange.Drawing
             switch (effectRangeData.AoEType)
             {
                 case ActionAoEType.Circle:
+                case ActionAoEType.Circle2:
                     drawData.Enqueue(new CircleAoEDrawData(targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
                     break;
                 case ActionAoEType.Cone:
+                case ActionAoEType.Cone2:
                     var angle = ActionData.GetConeAoECentralAngle(effectRangeData.ActionId, effectRangeData.EffectRange);
                     drawData.Enqueue(originPos == targetPos ?
                         new FacingDirectedConeAoEDrawData(originPos, rotation + effectRangeData.RotationOffset, effectRangeData.EffectRange, effectRangeData.XAxisModifier, angle, ringCol, fillCol) :
                         new TargetDirectedConeAoEDrawData(originPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, angle, ringCol, fillCol));
                     break;
                 case ActionAoEType.Line:
+                case ActionAoEType.Line2:
                     drawData.Enqueue(originPos == targetPos ?
                         new FacingDirectedLineAoEDrawData(originPos, rotation + effectRangeData.RotationOffset, effectRangeData.EffectRange, effectRangeData.XAxisModifier, false, ringCol, fillCol) :
                         new TargetDirectedLineAoEDrawData(originPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, false, ringCol, fillCol));
@@ -111,7 +114,7 @@ namespace ActionEffectRange.Drawing
                     drawData.Enqueue(new DonutAoEDrawData(targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, effectRangeData.AdditionalEffectRange, ringCol, fillCol));
                     break;
                 default:
-                    PluginLog.Error($"Failed to create and queue DrawData for action#{effectRangeData.ActionId}: Unknown AoE Type {effectRangeData.AoEType}");
+                    Plugin.LogUserDebug($"---No DrawData created for Action#{effectRangeData.ActionId}: {effectRangeData.AoEType} is not valid AoE Type");
                     return;
             }
         }
