@@ -27,4 +27,5 @@ Once added, look for the plugin "ActionEffectRange" in Plugin Installer's availa
 
 - Dancer's "Curing Waltz": Not showing effect range for additional effect (AoE heal around partner)
 
+- Dark Knight's "Salt and Darkness": Not showing effect range when used
 
