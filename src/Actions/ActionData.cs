@@ -94,25 +94,38 @@ namespace ActionEffectRange.Actions
 
         public static HashSet<EffectRangeData> CheckEffectRangeDataOverriding(EffectRangeData original)
         {
-            // TODO: check CastType / harmfulness (predefined / user)
-            // ** flamethrower, passarge of arm, etc.
-
-            var updated = CheckConeAoEAngleOverriding(original);
+            EffectRangeData updated;
+            updated = CheckAoETypeOverriding(original);
+            updated = CheckConeAoEAngleOverriding(updated);
             var updatedSet = EffectRangeCornerCases.GetUpdatedEffectDataSet(updated);
             if (!updatedSet.Any()) updatedSet.Add(updated);
             return updatedSet;
+        }
+
+        private static EffectRangeData CheckAoETypeOverriding(EffectRangeData original)
+        {
+            // TODO: check user overriding, return if any
+
+            if (AoETypeOverridingMap.PredefinedSpecial.TryGetValue(
+                original.ActionId, out var data))
+                return EffectRangeData.Create(
+                    original.ActionId, (uint)original.Category, original.IsGTAction,
+                    data.IsHarmful, original.Range, original.EffectRange,
+                    original.XAxisModifier, data.CastType, isOriginal: false);
+
+            return original;
         }
 
         private static EffectRangeData CheckConeAoEAngleOverriding(EffectRangeData original)
         {
             if (original is not ConeAoEEffectRangeData) return original;
             
+            // TODO: check user overriding, return if any
+
             if (ConeAoEAngleMap.PredefinedSpecial.TryGetValue(
                 original.ActionId, out var coneData))
                 return new ConeAoEEffectRangeData(
                     original, coneData.CentralAngleBy2pi, coneData.RotationOffset);
-
-            // TODO: check user overriding
 
             if (ConeAoEAngleMap.DefaultAnglesByRange.TryGetValue(
                 original.EffectRange, out var angle))

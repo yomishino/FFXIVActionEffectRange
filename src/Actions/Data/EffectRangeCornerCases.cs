@@ -13,25 +13,11 @@ namespace ActionEffectRange.Actions.Data
             // TODO: need rewrite because of EffectRangeData
             switch (originalData.ActionId)
             {
-                //case 2270:      // Doton (NIN)
-                //case 3639:      // salted earth (DRK)
-                //    // Force it to be "harmful"
-                //    updatedDataSet.Add(new(originalData, isHarmful: true));
-                //    return updatedDataSet;
-                //case 7418:      // flamethrower (MCH)
-                //    // Override CastType as cone AoE, angle default
-                //    updatedDataSet.Add(new(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, true,
-                //        originalData.Range, originalData.EffectRange, 3, originalData.XAxisModifier, isOriginal: false));
-                //    return updatedDataSet;
                 //case 7439:      // earthly star
                 //    // Add also as harmful action
                 //    updatedDataSet.Add(new(originalData, isHarmful: true));
                 //    // Add original heal effect later to "prioritise" drawing it as beneficial
                 //    updatedDataSet.Add(originalData);
-                //    return updatedDataSet;
-                //case 16553:     // celestial opposition (AST)
-                //    // Force it to be "beneficial"
-                //    updatedDataSet.Add(new(originalData, isHarmful: false));
                 //    return updatedDataSet;
                 //case 17991:     // celestial opposition (AST PvP)
                 //    updatedDataSet.Add(originalData);
