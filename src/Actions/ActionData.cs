@@ -70,30 +70,37 @@ namespace ActionEffectRange.Actions
 
         public static bool IsRuledOutAction(uint actionId) => RuledOutActions.HashSet.Contains(actionId);
 
-        public static bool CheckPetAction(EffectRangeData ownerActionData, out HashSet<EffectRangeData?>? petActionEffectRangeDataSet)
+        public static bool CheckPetAction(EffectRangeData ownerActionData, 
+            out HashSet<EffectRangeData>? petActionEffectRangeDataSet)
         {
             petActionEffectRangeDataSet = null;
-            if (!PetActionMap.Dictionary.TryGetValue(ownerActionData.ActionId, out var petActionIds) || petActionIds == null) return false;
+            if (!PetActionMap.Dictionary.TryGetValue(ownerActionData.ActionId, out var petActionIds) 
+                || petActionIds == null) return false;
             petActionEffectRangeDataSet = petActionIds
                 .Select(id => GetActionEffectRangeDataRaw(id))
                 .Where(data => data != null && data.EffectRange > 0)
+                .SelectMany(data => CheckEffectRangeDataOverriding(data))
                 .ToHashSet();
             return petActionEffectRangeDataSet.Any();
         }
 
-        public static bool CheckPetLikeAction(EffectRangeData ownerActionData, out HashSet<EffectRangeData?>? petLikeActionEffectRangeDataSet)
+        public static bool CheckPetLikeAction(EffectRangeData ownerActionData, 
+            out HashSet<EffectRangeData>? petLikeActionEffectRangeDataSet)
         {
             petLikeActionEffectRangeDataSet = null;
-            if (!PetLikeActionMap.Dictionary.TryGetValue(ownerActionData.ActionId, out var petActionIds) || petActionIds == null) return false;
+            if (!PetLikeActionMap.Dictionary.TryGetValue(ownerActionData.ActionId, out var petActionIds) 
+                || petActionIds == null) return false;
             petLikeActionEffectRangeDataSet = petActionIds
                 .Select(id => GetActionEffectRangeDataRaw(id))
                 .Where(data => data != null && data.EffectRange > 0)
+                .SelectMany(data => CheckEffectRangeDataOverriding(data))
                 .ToHashSet();
             return petLikeActionEffectRangeDataSet.Any();
         }
 
-        public static HashSet<EffectRangeData> CheckEffectRangeDataOverriding(EffectRangeData original)
+        public static HashSet<EffectRangeData> CheckEffectRangeDataOverriding(EffectRangeData? original)
         {
+            if (original == null) return new();
             EffectRangeData updated;
             updated = CheckAoETypeOverriding(original);
             updated = CheckConeAoEAngleOverriding(updated);
