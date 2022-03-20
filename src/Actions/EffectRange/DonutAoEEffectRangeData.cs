@@ -21,5 +21,12 @@
                   innerRadius, isOriginal: true)
         { }
 
+        public DonutAoEEffectRangeData(EffectRangeData original,
+            byte innerRadius, bool isOriginal = false)
+            : this(original.ActionId, (uint)original.Category, original.IsGTAction,
+                  original.IsHarmfulAction, original.Range, original.EffectRange,
+                  original.XAxisModifier, original.CastType, innerRadius, isOriginal)
+        { }
+
     }
 }

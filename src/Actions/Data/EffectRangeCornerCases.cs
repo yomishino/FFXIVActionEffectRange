@@ -36,9 +36,7 @@ namespace ActionEffectRange.Actions.Data
                 //    // Add the additional heal effect range
                 //    updatedDataSet.Add(new(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, false, 0, 20, 2, 0, isOriginal: false));
                 //    return updatedDataSet;
-                //case 11420:     // dragon's voice (BLU)
-                //    updatedDataSet.Add(new(originalData, additionalEffectRange: 8));
-                //    return updatedDataSet;
+                
                 default: return updatedDataSet;
             }
         }

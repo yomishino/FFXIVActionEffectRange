@@ -97,6 +97,7 @@ namespace ActionEffectRange.Actions
             EffectRangeData updated;
             updated = CheckAoETypeOverriding(original);
             updated = CheckConeAoEAngleOverriding(updated);
+            updated = CheckDonutAoERadiusOverriding(updated);
             var updatedSet = EffectRangeCornerCases.GetUpdatedEffectDataSet(updated);
             if (!updatedSet.Any()) updatedSet.Add(updated);
             return updatedSet;
@@ -130,6 +131,16 @@ namespace ActionEffectRange.Actions
             if (ConeAoEAngleMap.DefaultAnglesByRange.TryGetValue(
                 original.EffectRange, out var angle))
                 return new ConeAoEEffectRangeData(original, angle);
+
+            return original;
+        }
+
+        private static EffectRangeData CheckDonutAoERadiusOverriding(EffectRangeData original)
+        {
+            // TODO: check user overriding, return if any
+
+            if (DonutAoERadiusMap.Predefined.TryGetValue(original.ActionId, out var radius))
+                return new DonutAoEEffectRangeData(original, radius);
 
             return original;
         }
