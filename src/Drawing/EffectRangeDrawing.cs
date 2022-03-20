@@ -1,5 +1,4 @@
-﻿using ActionEffectRange.Actions;
-using ActionEffectRange.Actions.Enums;
+﻿using ActionEffectRange.Actions.EffectRange;
 using ActionEffectRange.Drawing.Types;
 using Dalamud.Interface;
 using Dalamud.Logging;
@@ -28,9 +27,13 @@ namespace ActionEffectRange.Drawing
         public static void RefreshColour()
         {
             beneficialRingColour = ImGui.ColorConvertFloat4ToU32(Plugin.Config.BeneficialColour);
-            beneficialFillColour = ImGui.ColorConvertFloat4ToU32(new(Plugin.Config.BeneficialColour.X, Plugin.Config.BeneficialColour.Y, Plugin.Config.BeneficialColour.Z, Plugin.Config.FillAlpha));
+            beneficialFillColour = ImGui.ColorConvertFloat4ToU32(new(
+                Plugin.Config.BeneficialColour.X, Plugin.Config.BeneficialColour.Y, 
+                Plugin.Config.BeneficialColour.Z, Plugin.Config.FillAlpha));
             harmfulRingColour = ImGui.ColorConvertFloat4ToU32(Plugin.Config.HarmfulColour);
-            harmfulFillColour = ImGui.ColorConvertFloat4ToU32(new(Plugin.Config.HarmfulColour.X, Plugin.Config.HarmfulColour.Y, Plugin.Config.HarmfulColour.Z, Plugin.Config.FillAlpha));
+            harmfulFillColour = ImGui.ColorConvertFloat4ToU32(new(
+                Plugin.Config.HarmfulColour.X, Plugin.Config.HarmfulColour.Y, 
+                Plugin.Config.HarmfulColour.Z, Plugin.Config.FillAlpha));
         }
 
         public static void Clear() => drawData.Clear();
@@ -47,8 +50,9 @@ namespace ActionEffectRange.Drawing
             ImGuiHelpers.SetNextWindowPosRelativeMainViewport(Vector2.Zero);
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
             ImGui.Begin("EffectRangeOverlay", 
-                ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoDecoration 
-                | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoInputs);
+                ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoBringToFrontOnFocus
+                | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoDocking 
+                | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoInputs);
             try
             {
                 foreach (var data in drawData)
@@ -74,7 +78,10 @@ namespace ActionEffectRange.Drawing
 
         public static void AddEffectRangeToDraw(EffectRangeData effectRangeData, Vector3 originPos, Vector3 targetPos, float rotation)
         {
-            Plugin.LogUserDebug($"AddEffectRangeToDraw => {effectRangeData.ActionId}, {effectRangeData.AoEType}, orig={originPos}, target={targetPos}");
+            Plugin.LogUserDebug(
+                $"AddEffectRangeToDraw => {effectRangeData.GetType()}: " +
+                $"{effectRangeData.ActionId}, {effectRangeData.CastType}, " +
+                $"orig={originPos}, target={targetPos}");
             if (!Plugin.IsPlayerLoaded) 
             {
                 Plugin.LogUserDebug($"---EffectRangeData not added to draw: Player is not loaded");
@@ -85,42 +92,50 @@ namespace ActionEffectRange.Drawing
             if (!effectRangeData.IsHarmfulAction && !Plugin.Config.DrawBeneficial) return;
             uint ringCol = effectRangeData.IsHarmfulAction ? harmfulRingColour : beneficialRingColour;
             uint fillCol = effectRangeData.IsHarmfulAction ? harmfulFillColour : beneficialFillColour;
-            switch (effectRangeData.AoEType)
+
+            switch (effectRangeData)
             {
-                case ActionAoEType.Circle:
-                case ActionAoEType.Circle2:
-                    drawData.Enqueue(new CircleAoEDrawData(targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
+                case CircleAoEEffectRangeData circleData:
+                    drawData.Enqueue(new CircleAoEDrawData(
+                        targetPos, circleData.EffectRange, circleData.XAxisModifier, 
+                        ringCol, fillCol));
                     break;
-                case ActionAoEType.Cone:
-                case ActionAoEType.Cone2:
+                case ConeAoEEffectRangeData coneData:
                     drawData.Enqueue(originPos == targetPos ?
-                        new FacingDirectedConeAoEDrawData(originPos, 
-                            rotation + effectRangeData.RotationOffset, 
-                            effectRangeData.EffectRange, effectRangeData.XAxisModifier, 
-                            effectRangeData.CentralAngleBy2Pi, ringCol, fillCol) :
-                        new TargetDirectedConeAoEDrawData(originPos, targetPos, 
-                            effectRangeData.EffectRange, effectRangeData.XAxisModifier, 
-                            effectRangeData.CentralAngleBy2Pi, ringCol, fillCol));
+                        new FacingDirectedConeAoEDrawData(originPos,
+                            rotation + coneData.RotationOffset,
+                            coneData.EffectRange, coneData.XAxisModifier,
+                            coneData.CentralAngleBy2Pi, ringCol, fillCol) :
+                        new TargetDirectedConeAoEDrawData(originPos, targetPos,
+                            coneData.EffectRange, coneData.XAxisModifier,
+                            coneData.CentralAngleBy2Pi, ringCol, fillCol));
                     break;
-                case ActionAoEType.Line:
-                case ActionAoEType.Line2:
-                    drawData.Enqueue(originPos == targetPos ?
-                        new FacingDirectedLineAoEDrawData(originPos, rotation + effectRangeData.RotationOffset, effectRangeData.EffectRange, effectRangeData.XAxisModifier, false, ringCol, fillCol) :
-                        new TargetDirectedLineAoEDrawData(originPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, false, ringCol, fillCol));
+                case LineAoEEffectRangeData lineData:
+                    drawData.Enqueue(originPos == targetPos 
+                        ? new FacingDirectedLineAoEDrawData(
+                            originPos, rotation + lineData.RotationOffset, lineData.EffectRange,
+                            lineData.XAxisModifier, false, ringCol, fillCol) 
+                        :new TargetDirectedLineAoEDrawData(
+                            originPos, targetPos, lineData.EffectRange, 
+                            lineData.XAxisModifier, false, ringCol, fillCol));
                     break;
-                case ActionAoEType.GT:
-                    drawData.Enqueue(new CircleAoEDrawData(targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
+                case DashAoEEffectRangeData dashData:
+                    drawData.Enqueue(new DashAoEDrawData(
+                        originPos, targetPos, dashData.EffectRange, 
+                        dashData.XAxisModifier, ringCol, fillCol));
                     break;
-                case ActionAoEType.DashAoE:
-                    drawData.Enqueue(new DashAoEDrawData(originPos, targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, ringCol, fillCol));
-                    break;
-                case ActionAoEType.Donut:
-                    drawData.Enqueue(new DonutAoEDrawData(targetPos, effectRangeData.EffectRange, effectRangeData.XAxisModifier, effectRangeData.AdditionalEffectRange, ringCol, fillCol));
+                case DonutAoEEffectRangeData donutData:
+                    drawData.Enqueue(new DonutAoEDrawData(
+                        targetPos, donutData.EffectRange, 
+                        donutData.XAxisModifier, donutData.InnerRadius, 
+                        ringCol, fillCol));
                     break;
                 default:
-                    Plugin.LogUserDebug($"---No DrawData created for Action#{effectRangeData.ActionId}: {effectRangeData.AoEType} is not valid AoE Type");
+                    Plugin.LogUserDebug(
+                        $"---No DrawData created for Action#{effectRangeData.ActionId}: " +
+                        $"created {effectRangeData.GetType().Name} from unknown AoE type");
                     return;
-            }
+            };
         }
 
     }

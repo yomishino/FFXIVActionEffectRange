@@ -1,4 +1,5 @@
 ﻿using ActionEffectRange.Actions.Data;
+using ActionEffectRange.Actions.EffectRange;
 using ActionEffectRange.Actions.Enums;
 using Lumina.Excel;
 using GeneratedSheets = Lumina.Excel.GeneratedSheets;
@@ -32,7 +33,13 @@ namespace ActionEffectRange.Actions
         public static EffectRangeData? GetActionEffectRangeDataRaw(uint actionId)
         {
             var row = GetActionExcelRow(actionId);
-            return row != null ? new(row) : null;
+            if (row == null)
+            {
+                Dalamud.Logging.PluginLog.Warning(
+                    $"No Excel row found for Action#{actionId}");
+                return null;
+            }   
+            return EffectRangeData.Create(row);
         }
 
         // Unk46: 0 - No direct effect, e.g. nonattacking move action like AM and En Avant, pet summon&ordering actions;
@@ -88,7 +95,7 @@ namespace ActionEffectRange.Actions
         public static HashSet<EffectRangeData> CheckEffectRangeDataOverriding(EffectRangeData original)
         {
             // TODO: check CastType / harmfulness (predefined / user)
-            // ** flamethrower etc.
+            // ** flamethrower, passarge of arm, etc.
 
             var updated = CheckConeAoEAngleOverriding(original);
             var updatedSet = EffectRangeCornerCases.GetUpdatedEffectDataSet(updated);
@@ -98,18 +105,18 @@ namespace ActionEffectRange.Actions
 
         private static EffectRangeData CheckConeAoEAngleOverriding(EffectRangeData original)
         {
-            if (original.AoEType != ActionAoEType.Cone 
-                && original.AoEType != ActionAoEType.Cone2)
-                return original;
-
-            if (ConeAoEAngleMap.PredefinedSpecial.TryGetValue(original.ActionId, out var coneData))
-                return EffectRangeData.OverrideAsConeAoE(
+            if (original is not ConeAoEEffectRangeData) return original;
+            
+            if (ConeAoEAngleMap.PredefinedSpecial.TryGetValue(
+                original.ActionId, out var coneData))
+                return new ConeAoEEffectRangeData(
                     original, coneData.CentralAngleBy2pi, coneData.RotationOffset);
 
             // TODO: check user overriding
 
-            if (ConeAoEAngleMap.DefaultAnglesByRange.TryGetValue(original.EffectRange, out var angle))
-                return EffectRangeData.OverrideAsConeAoE(original, angle);
+            if (ConeAoEAngleMap.DefaultAnglesByRange.TryGetValue(
+                original.EffectRange, out var angle))
+                return new ConeAoEEffectRangeData(original, angle);
 
             return original;
         }

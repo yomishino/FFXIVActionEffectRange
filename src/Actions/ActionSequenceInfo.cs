@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using ActionEffectRange.Actions.EffectRange;
+using System.Collections.Generic;
 using System.Numerics;
 
 namespace ActionEffectRange.Actions
@@ -12,7 +13,8 @@ namespace ActionEffectRange.Actions
         public readonly bool IsPetAction;    // incl. pet-like such as bunshin's
         public uint ActionId => EffectRangeData.ActionId;
 
-        public ActionSequenceInfo(EffectRangeData effectRangeData, Vector3 originPos, Vector3 targetPos, float actorRotation, bool isPetAction = false)
+        public ActionSequenceInfo(EffectRangeData effectRangeData, 
+            Vector3 originPos, Vector3 targetPos, float actorRotation, bool isPetAction = false)
         {
             EffectRangeData = effectRangeData;
             OriginPosition = originPos;
