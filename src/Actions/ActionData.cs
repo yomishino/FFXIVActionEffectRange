@@ -63,16 +63,6 @@ namespace ActionEffectRange.Actions
 
         public static bool IsRuledOutAction(uint actionId) => RuledOutActions.HashSet.Contains(actionId);
 
-        
-        public static HashSet<EffectRangeData> CheckCornerCasesAndGetUpdatedEffectRangeData(EffectRangeData originalData)
-        {
-            var updatedData = EffectRangeCornerCases.GetUpdatedEffectDataSet(originalData);
-            if (!updatedData.Any())
-                updatedData.Add(originalData);
-            return updatedData;
-        }
-
-
         public static bool CheckPetAction(EffectRangeData ownerActionData, out HashSet<EffectRangeData?>? petActionEffectRangeDataSet)
         {
             petActionEffectRangeDataSet = null;
@@ -95,14 +85,35 @@ namespace ActionEffectRange.Actions
             return petLikeActionEffectRangeDataSet.Any();
         }
 
-
-        public static float GetConeAoECentralAngle(uint actionId, byte effectRange)
+        public static HashSet<EffectRangeData> CheckEffectRangeDataOverriding(EffectRangeData original)
         {
-            if (ConeAoEAngleMap.Dictionary.TryGetValue(actionId, out float angle)) return angle;
-            if (effectRange == 8) return ConeAoEAngleMap.DefaultAngleBy2pi_Range8;
-            else if (effectRange == 6) return ConeAoEAngleMap.DefaultAngleBy2pi_Range6;
-            else return ConeAoEAngleMap.DefaultAngleBy2pi_Range12;
+            // TODO: check CastType / harmfulness (predefined / user)
+            // ** flamethrower etc.
+
+            var updated = CheckConeAoEAngleOverriding(original);
+            var updatedSet = EffectRangeCornerCases.GetUpdatedEffectDataSet(updated);
+            if (!updatedSet.Any()) updatedSet.Add(updated);
+            return updatedSet;
         }
+
+        private static EffectRangeData CheckConeAoEAngleOverriding(EffectRangeData original)
+        {
+            if (original.AoEType != ActionAoEType.Cone 
+                && original.AoEType != ActionAoEType.Cone2)
+                return original;
+
+            if (ConeAoEAngleMap.PredefinedSpecial.TryGetValue(original.ActionId, out var coneData))
+                return EffectRangeData.OverrideAsConeAoE(
+                    original, coneData.CentralAngleBy2pi, coneData.RotationOffset);
+
+            // TODO: check user overriding
+
+            if (ConeAoEAngleMap.DefaultAnglesByRange.TryGetValue(original.EffectRange, out var angle))
+                return EffectRangeData.OverrideAsConeAoE(original, angle);
+
+            return original;
+        }
+
 
         public static bool IsActionBlacklisted(uint actionId) 
             => ActionBlacklist.Contains(actionId);

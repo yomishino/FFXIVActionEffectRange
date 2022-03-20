@@ -1,4 +1,5 @@
-﻿using ActionEffectRange.Actions.Enums;
+﻿using static ActionEffectRange.Actions.Data.ConeAoEAngleMap;
+using ActionEffectRange.Actions.Enums;
 
 namespace ActionEffectRange.Actions
 {
@@ -14,12 +15,15 @@ namespace ActionEffectRange.Actions
         public readonly ActionAoEType AoEType;
         public readonly byte XAxisModifier; // for straight line aoe, this is the width?
         public readonly byte AdditionalEffectRange; // basically for donut inner radius
+        public readonly float CentralAngleBy2Pi;    // for cone
         public readonly float RotationOffset;
         public readonly bool IsOriginal;
 
 
-        public EffectRangeData(uint actionId, uint actionCategory, bool isGT, bool isHarmful, sbyte range, byte effectRange, 
-            byte castType, byte xAxisModifier, byte additionalEffectRange = 0, float rotationOffset = 0, bool isOriginal = false)
+        public EffectRangeData(uint actionId, uint actionCategory, bool isGT, bool isHarmful, 
+            sbyte range, byte effectRange, byte castType, byte xAxisModifier, 
+            byte additionalEffectRange = 0, float centralAngleBy2Pi = DefaultAngle, 
+            float rotationOffset = 0, bool isOriginal = false)
         {
             ActionId = actionId;
             Category = (ActionCategory)actionCategory;
@@ -31,6 +35,7 @@ namespace ActionEffectRange.Actions
             AoEType = (ActionAoEType)castType;
             XAxisModifier = xAxisModifier;
             AdditionalEffectRange = additionalEffectRange;
+            CentralAngleBy2Pi = centralAngleBy2Pi;
             RotationOffset = rotationOffset;
             IsOriginal = isOriginal;
         }
@@ -44,10 +49,18 @@ namespace ActionEffectRange.Actions
                   originalData.Range, originalData.EffectRange, originalData.CastType, originalData.XAxisModifier, isOriginal: isOriginal) { }
 
         public EffectRangeData(EffectRangeData originalData, byte additionalEffectRange = 0, 
-            float centralAngleBy2pi = .25f, float rotationOffset = 0, bool isOriginal = false)
+            float centralAngleBy2Pi = 1f / 3f, float rotationOffset = 0, bool isOriginal = false)
             : this(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, originalData.IsHarmfulAction,
                   originalData.Range, originalData.EffectRange, originalData.CastType, originalData.XAxisModifier,
-                  additionalEffectRange, rotationOffset, isOriginal: isOriginal) { }
+                  additionalEffectRange, centralAngleBy2Pi, rotationOffset, isOriginal: isOriginal) { }
+
+
+        public static EffectRangeData OverrideAsConeAoE(EffectRangeData original,
+            float centralAngleBy2Pi, float rotationOffset = 0)
+            => new(original.ActionId, (uint)original.Category, original.IsGTAction,
+                  original.IsHarmfulAction, original.Range, original.EffectRange,
+                  (byte)ActionAoEType.Cone, original.XAxisModifier, original.AdditionalEffectRange,
+                  centralAngleBy2Pi, rotationOffset, false);
     }
 
 }

@@ -101,7 +101,7 @@ namespace ActionEffectRange.Actions
 
             if (replacedAction) return;
 
-            var updatedEffectRangeDataSet = ActionData.CheckCornerCasesAndGetUpdatedEffectRangeData(originalData);
+            var updatedEffectRangeDataSet = ActionData.CheckEffectRangeDataOverriding(originalData);
             
             Plugin.LogUserDebug($"---Updated action#{actionId} effect range data: {updatedEffectRangeDataSet.Count}");
             
@@ -161,7 +161,7 @@ namespace ActionEffectRange.Actions
             PluginLog.Debug($"** ---Action: id={actionId}, castType={originalData.CastType}({originalData.AoEType}), effectRange={originalData.EffectRange}, xAxisModifier={originalData.XAxisModifier}");
 #endif
 
-            var updatedEffectRangeDataSet = ActionData.CheckCornerCasesAndGetUpdatedEffectRangeData(originalData);
+            var updatedEffectRangeDataSet = ActionData.CheckEffectRangeDataOverriding(originalData);
             Plugin.LogUserDebug($"---Updated action#{actionId} effect range data: {updatedEffectRangeDataSet.Count}");
             foreach (var data in updatedEffectRangeDataSet)
             {

@@ -21,11 +21,6 @@ namespace ActionEffectRange.Actions.Data
                     updatedDataSet.Add(new(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, true,
                         originalData.Range, originalData.EffectRange, 3, originalData.XAxisModifier, isOriginal: false));
                     return updatedDataSet;
-                case 7385:      // Passage of Arms (PLD)
-                    // Overide it to be Cone and add rotation offset to adjust to cone towards back
-                    updatedDataSet.Add(new(originalData.ActionId, (uint)originalData.Category, originalData.IsGTAction, originalData.IsHarmfulAction,
-                        originalData.Range, originalData.EffectRange, 3, originalData.XAxisModifier, rotationOffset: System.MathF.PI, isOriginal: false));
-                    return updatedDataSet;
                 case 7439:      // earthly star
                     // Add also as harmful action
                     updatedDataSet.Add(new(originalData, isHarmful: true));
