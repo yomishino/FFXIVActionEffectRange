@@ -79,9 +79,7 @@ namespace ActionEffectRange.Drawing
         public static void AddEffectRangeToDraw(EffectRangeData effectRangeData, Vector3 originPos, Vector3 targetPos, float rotation)
         {
             Plugin.LogUserDebug(
-                $"AddEffectRangeToDraw => {effectRangeData.GetType()}: " +
-                $"{effectRangeData.ActionId}, {effectRangeData.CastType}, " +
-                $"orig={originPos}, target={targetPos}");
+                $"AddEffectRangeToDraw => {effectRangeData}, orig={originPos}, target={targetPos}, rotation={rotation}");
             if (!Plugin.IsPlayerLoaded) 
             {
                 Plugin.LogUserDebug($"---EffectRangeData not added to draw: Player is not loaded");
