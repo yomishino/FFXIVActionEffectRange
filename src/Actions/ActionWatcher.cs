@@ -50,8 +50,11 @@ namespace ActionEffectRange.Actions
 
             var target = new Lazy<GameObject?>(() => Plugin.ObejctTable.SearchById((uint)targetObjectId));
 
-            if (CheckPetAndPetLikeInSend(originalData, sequence, targetObjectId, target)) 
+            if (CheckPetAndPetLikeInSend(originalData, sequence, targetObjectId, target))
+            {
+                recordedActionSequence[sequence] = new(sequence);
                 return;
+            }
 
             var overridenDataSet = CheckEffectRangeDataOverriding(originalData);
             recordedActionSequence[sequence] = new(sequence);
@@ -174,6 +177,7 @@ namespace ActionEffectRange.Actions
                             info.ActorRotation);
                     }
                     recordedPetLikeActionEffectToWait.Remove(header.ActionId);
+                    recordedActionSequence.Remove(petLikeSeqInfos.ActionSequence);
                 }
                 if (Plugin.Config.DrawOwnPets && recordedPetActionEffectToWait.TryGetValue(header.ActionId, out var petSeqInfos))
                 {
@@ -188,6 +192,7 @@ namespace ActionEffectRange.Actions
                             info.ActorRotation);
                     }
                     recordedPetLikeActionEffectToWait.Remove(header.ActionId);
+                    recordedActionSequence.Remove(petSeqInfos.ActionSequence);
                 }
             }
             else if (recordedActionSequence.TryGetValue(header.Sequence, out var seqInfos))
