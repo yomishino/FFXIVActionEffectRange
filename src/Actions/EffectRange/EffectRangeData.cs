@@ -65,6 +65,14 @@ namespace ActionEffectRange.Actions.EffectRange
                 actionRow.TargetArea, ActionData.IsHarmfulAction(actionRow), 
                 actionRow.Range, actionRow.EffectRange, actionRow.XAxisModifier, 
                 actionRow.CastType, isOriginal: true);
+
+        public override string ToString()
+            => $"{GetType().Name}{{ ActionId: {ActionId}, Category: {Category}, " +
+            $"IsGT: {IsGTAction}, IsHarmful: {IsHarmfulAction}, " +
+            $"Range: {Range}, EffectRange: {EffectRange}, XAxisModifier: {XAxisModifier}, " +
+            $"CastType: {CastType}, {AdditionalFieldsToString()}, IsOriginal: {IsOriginal} }}";
+
+        protected virtual string AdditionalFieldsToString() => string.Empty;
     }
 
 }

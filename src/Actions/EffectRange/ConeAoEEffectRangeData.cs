@@ -33,5 +33,8 @@
                   original.XAxisModifier, original.CastType,
                   centralAngleBy2Pi, rotationOffset, isOriginal)
         { }
+
+        protected override string AdditionalFieldsToString()
+            => $"Angle: {CentralAngleBy2Pi}, RotationOffset: {RotationOffset}";
     }
 }

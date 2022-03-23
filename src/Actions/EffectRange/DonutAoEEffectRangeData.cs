@@ -28,5 +28,7 @@
                   original.XAxisModifier, original.CastType, innerRadius, isOriginal)
         { }
 
+        protected override string AdditionalFieldsToString()
+            => $"InnerRadius: {InnerRadius}";
     }
 }

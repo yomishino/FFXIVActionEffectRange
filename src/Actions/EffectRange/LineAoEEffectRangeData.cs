@@ -22,5 +22,8 @@
                   actionRow.EffectRange, actionRow.XAxisModifier, actionRow.CastType, 
                   rotationOffset, isOriginal: true)
         { }
+
+        protected override string AdditionalFieldsToString()
+            => $"RotationOffset: {RotationOffset}";
     }
 }
