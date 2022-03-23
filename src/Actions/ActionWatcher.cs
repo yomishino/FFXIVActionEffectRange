@@ -1,6 +1,7 @@
 ﻿using ActionEffectRange.Actions.EffectRange;
 using ActionEffectRange.Actions.Enums;
 using ActionEffectRange.Drawing;
+using ActionEffectRange.Helpers;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Hooking;
 using Dalamud.Logging;
@@ -336,23 +337,11 @@ namespace ActionEffectRange.Actions
 
         #endregion
 
-        private static uint playerClassJob;
-
-        private static void OnUpdateClearCacheOnJobChange(Dalamud.Game.Framework _)
-        {
-            if (!Plugin.IsPlayerLoaded) return;
-            var currentClassJob = Plugin.ClientState.LocalPlayer!.ClassJob.Id;
-            if (playerClassJob != currentClassJob)
-            {
-                ClearActionSequenceInfoCache();
-                playerClassJob = Plugin.ClientState.LocalPlayer.ClassJob.Id;
-            }
-        }
+        private static void OnClassJobChangedClearCache(uint classJobId)
+            => ClearActionSequenceInfoCache();
 
         private static void OnTerritoryChangedClearCache(object? sender, ushort terr)
-        {
-            ClearActionSequenceInfoCache();
-        }
+            => ClearActionSequenceInfoCache();
 
 
         static ActionWatcher()
@@ -385,8 +374,8 @@ namespace ActionEffectRange.Actions
             SendActionHook?.Enable();
             ReceiveActionEffectHook?.Enable();
 
-            Plugin.Framework.Update += OnUpdateClearCacheOnJobChange;
             Plugin.ClientState.TerritoryChanged += OnTerritoryChangedClearCache;
+            ClassJobWatcher.ClassJobChanged += OnClassJobChangedClearCache;
         }
 
         public static void Disable()
@@ -398,8 +387,8 @@ namespace ActionEffectRange.Actions
             SendActionHook?.Disable();
             ReceiveActionEffectHook?.Disable();
 
-            Plugin.Framework.Update -= OnUpdateClearCacheOnJobChange;
             Plugin.ClientState.TerritoryChanged -= OnTerritoryChangedClearCache;
+            ClassJobWatcher.ClassJobChanged -= OnClassJobChangedClearCache;
         }
 
         public static void Dispose()

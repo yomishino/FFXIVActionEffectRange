@@ -1,5 +1,6 @@
 ﻿using ActionEffectRange.Actions;
 using ActionEffectRange.Drawing;
+using ActionEffectRange.Helpers;
 using Dalamud.Data;
 using Dalamud.Game;
 using Dalamud.Game.Command;
@@ -155,6 +156,7 @@ namespace ActionEffectRange
             PluginInterface.UiBuilder.OpenConfigUi -= OnOpenConfigUi;
 
             ActionWatcher.Dispose();
+            ClassJobWatcher.Dispose();
         }
 
         public void Dispose()
