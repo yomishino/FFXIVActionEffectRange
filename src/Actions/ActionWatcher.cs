@@ -1,11 +1,13 @@
 ﻿using ActionEffectRange.Actions.EffectRange;
 using ActionEffectRange.Actions.Enums;
 using ActionEffectRange.Drawing;
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Hooking;
 using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
@@ -14,6 +16,16 @@ namespace ActionEffectRange.Actions
     public static class ActionWatcher
     {
         private static readonly IntPtr actionMgrPtr;
+
+        private static readonly Dictionary<ushort, ActionSequenceInfoSet> recordedActionSequence = new();
+        private static readonly Dictionary<uint, ActionSequenceInfoSet> recordedPetActionEffectToWait = new();
+        private static readonly Dictionary<uint, ActionSequenceInfoSet> recordedPetLikeActionEffectToWait = new();
+
+        private static ushort CurrentSeq => actionMgrPtr != IntPtr.Zero 
+            ? (ushort)Marshal.ReadInt16(actionMgrPtr + 0x110) : (ushort)0;
+        private static ushort LastRecievedSeq => actionMgrPtr != IntPtr.Zero 
+            ? (ushort)Marshal.ReadInt16(actionMgrPtr + 0x112) : (ushort)0;
+
 
         // Send what is executed; won't be called if queued but not yet executed or failed to execute (e.g. cast cancelled)
         // Information here also more accurate than from UseAction; handles combo/proc and target issues esp. with plugins like FFXIVCombo / ReAction 
@@ -32,93 +44,17 @@ namespace ActionEffectRange.Actions
 #endif
             if (!Plugin.IsPlayerLoaded || !ShouldProcessAction(actionType, actionId)) return;
 
-            var originalData = ActionData.GetActionEffectRangeDataRaw(actionId);
-            if (originalData == null)
-            {
-                PluginLog.Error($"Cannot get original data for action {actionId}");
+            if (!ProcessInitialStepInSend(actionId, out var originalData)) return;
+            if (originalData == null) return;   // shouldn't be possible but nah
+
+            var target = new Lazy<GameObject?>(() => Plugin.ObejctTable.SearchById((uint)targetObjectId));
+
+            if (CheckPetAndPetLikeInSend(originalData, sequence, targetObjectId, target)) 
                 return;
-            }
-            if (!ShouldDrawForActionCategory(originalData.Category)) return;
-#if DEBUG
-            PluginLog.Debug($"** ---Action: id={actionId}, " +
-                $"castType={originalData.CastType}({(ActionAoEType)originalData.CastType}), " +
-                $"effectRange={originalData.EffectRange}, xAxisModifier={originalData.XAxisModifier}");
-#endif
 
-            bool replacedAction = false;
-
-            // Check pet/pet-like actions; sequence is always 0 in ReceiveActionEffect for these actions 
-            if (Plugin.BuddyList.PetBuddyPresent)
-            {
-                var pet = Plugin.BuddyList.PetBuddy?.GameObject;
-                if (pet != null)
-                {
-#if DEBUG
-                    PluginLog.Debug($"** ---check pet/pet-like action: pet objId={pet.ObjectId:X}, pos={pet.Position}");
-#endif
-
-                    if (ActionData.CheckPetLikeAction(originalData, out var petLikeActionEffectRangeDataSet) && petLikeActionEffectRangeDataSet != null)
-                    {
-                        replacedAction = true;
-                        Plugin.LogUserDebug($"---Replacing action#{actionId} to pet-like actions");
-                        foreach (var data in petLikeActionEffectRangeDataSet)
-                        {
-                            if (data == null) continue;
-                            if (!ShouldDrawForEffectRange(data)) continue;
-                            if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful 
-                                || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
-                            recordedPetLikeActionEffectToWait[data.ActionId] = new(sequence);
-                            if (data.Range == 0)
-                                recordedPetLikeActionEffectToWait[data.ActionId].Add(
-                                    new(data, pet.Position, pet.Position, pet.Rotation, true));
-                            else
-                            {
-                                var target = Plugin.ObejctTable.SearchById((uint)targetObjectId);
-                                if (target != null) recordedPetLikeActionEffectToWait[data.ActionId].Add(
-                                    new(data, pet.Position, target.Position, pet.Rotation, true));
-                                else PluginLog.Error($"Cannot find valid target of id {targetObjectId:X} for action {actionId}");
-                            }
-                            Plugin.LogUserDebug($"---Recorded possible pet-like action {data.ActionId} to wait");
-                        }
-                    }
-
-                    if (Plugin.Config.DrawOwnPets && ActionData.CheckPetAction(originalData, out var petActionEffectRangeDataSet)
-                        && petActionEffectRangeDataSet != null)
-                    {
-                        replacedAction = true;
-                        Plugin.LogUserDebug($"---Replacing action#{actionId} to pet actions");
-                        foreach (var data in petActionEffectRangeDataSet)
-                        {
-                            if (data == null) continue;
-                            if (!ShouldDrawForEffectRange(data)) continue;
-                            if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful 
-                                || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
-                            recordedPetActionEffectToWait[data.ActionId] = new(sequence);
-                            if (data.Range == 0)
-                                recordedPetActionEffectToWait[data.ActionId].Add(
-                                    new(data, pet.Position, pet.Position, pet.Rotation, true));
-                            else
-                            {
-                                var target = Plugin.ObejctTable.SearchById((uint)targetObjectId);
-                                if (target != null) recordedPetActionEffectToWait[data.ActionId].Add(
-                                    new(data, pet.Position, target.Position, pet.Rotation, true));
-                                else PluginLog.Error($"Cannot find valid target of id {targetObjectId:X} for action {actionId}");
-                            }
-                            Plugin.LogUserDebug($"---Recorded possible pet action {data.ActionId} to wait");
-                        }
-                    }
-                }
-            }
-
-            if (replacedAction) return;
-
-            var updatedEffectRangeDataSet = ActionData.CheckEffectRangeDataOverriding(originalData);
-            
-            Plugin.LogUserDebug($"---Updated action#{actionId} effect range data: {updatedEffectRangeDataSet.Count}");
-            
+            var overridenDataSet = CheckEffectRangeDataOverriding(originalData);
             recordedActionSequence[sequence] = new(sequence);
-
-            foreach (var data in updatedEffectRangeDataSet)
+            foreach (var data in overridenDataSet)
             {
                 if (!ShouldDrawForEffectRange(data)) continue;
                 if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
@@ -130,10 +66,9 @@ namespace ActionEffectRange.Actions
                         Plugin.ClientState.LocalPlayer!.Rotation, false));
                 else
                 {
-                    var target = Plugin.ObejctTable.SearchById((uint)targetObjectId);
-                    if (target != null) recordedActionSequence[sequence].Add(new(data, 
+                    if (target.Value != null) recordedActionSequence[sequence].Add(new(data, 
                         Plugin.ClientState.LocalPlayer!.Position, 
-                        target.Position, Plugin.ClientState.LocalPlayer!.Rotation, false));
+                        target.Value.Position, Plugin.ClientState.LocalPlayer!.Rotation, false));
                     else PluginLog.Error($"Cannot find valid target of id {targetObjectId:X} for action {actionId}");
                 }
             }
@@ -172,26 +107,20 @@ namespace ActionEffectRange.Actions
             Plugin.LogUserDebug($"UseActionLocation => Possible GT action #{actionId} " +
                 $"type={actionType} at Seq={CurrentSeq}, using info from UseActionLocation");
 
-            var originalData = ActionData.GetActionEffectRangeDataRaw(actionId);
-            if (originalData == null)
-            {
-                PluginLog.Error($"Cannot get original data for action {actionId}");
-                return ret;
-            }
-            if (!ShouldDrawForActionCategory(originalData.Category)) return ret;
-#if DEBUG
-            PluginLog.Debug($"** ---Action: id={actionId}, " +
-                $"castType={originalData.CastType}({(ActionAoEType)originalData.CastType}), " +
-                $"effectRange={originalData.EffectRange}, xAxisModifier={originalData.XAxisModifier}");
-#endif
+            if (!ProcessInitialStepInSend(actionId, out var originalData)) return ret;
+            if (originalData == null) return ret; 
 
-            var updatedEffectRangeDataSet = ActionData.CheckEffectRangeDataOverriding(originalData);
-            Plugin.LogUserDebug($"---Updated action#{actionId} effect range data: {updatedEffectRangeDataSet.Count}");
-            foreach (var data in updatedEffectRangeDataSet)
+            // NOTE: Should've checked if the action could be mapped to some pet/pet-like actions
+            // but currently none for those actions if we've reached here so just omit it for now
+
+            var overridenDataSet = CheckEffectRangeDataOverriding(originalData);
+            recordedActionSequence[seq] = new(seq);
+            foreach (var data in overridenDataSet)
             {
                 if (!data.IsGTAction || !ShouldDrawForEffectRange(data)) continue;
-                if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
-                if (!recordedActionSequence.ContainsKey(seq)) recordedActionSequence[seq] = new(seq);
+                if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful 
+                    || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) 
+                    continue;
                 // Will use location from ReceiveActionEffect for target position later
                 recordedActionSequence[seq].Add(new(data, 
                     Plugin.ClientState.LocalPlayer!.Position, new(), 
@@ -276,15 +205,6 @@ namespace ActionEffectRange.Actions
             }
         }
 
-
-        private static ushort CurrentSeq => actionMgrPtr != IntPtr.Zero ? (ushort)Marshal.ReadInt16(actionMgrPtr + 0x110) : (ushort)0;
-        private static ushort LastRecievedSeq => actionMgrPtr != IntPtr.Zero ? (ushort)Marshal.ReadInt16(actionMgrPtr + 0x112) : (ushort)0;
-
-        
-        private static readonly Dictionary<ushort, ActionSequenceInfoSet> recordedActionSequence = new();
-        private static readonly Dictionary<uint, ActionSequenceInfoSet> recordedPetActionEffectToWait = new();
-        private static readonly Dictionary<uint, ActionSequenceInfoSet> recordedPetLikeActionEffectToWait = new();
-
         private static void ClearActionSequenceInfoCache()
         {
             recordedActionSequence.Clear();
@@ -313,6 +233,108 @@ namespace ActionEffectRange.Actions
                 || Plugin.Config.LargeDrawOpt != 1 
                 || data.EffectRange < Plugin.Config.LargeThreshold);
 
+
+        #region Send Helpers
+
+        // Return true if can continue to process
+        private static bool ProcessInitialStepInSend(uint actionId, out EffectRangeData? data)
+        {
+            data = ActionData.GetActionEffectRangeDataRaw(actionId);
+            if (data == null)
+            {
+                PluginLog.Error($"Cannot get original data for action {actionId}");
+                return false;
+            }
+#if DEBUG
+            PluginLog.Debug($"** ---Created original data: {data}");
+#endif
+            return ShouldDrawForActionCategory(data.Category);
+        }
+
+        // Check pet/pet-like actions
+        // Note: Sequence is always 0 in ReceiveActionEffect for these actions,
+        //  but we'll record the sequence of the player action for tracking purpose
+        // Return true if mapped to corresponding pet/pet-like actions
+        private static bool CheckPetAndPetLikeInSend(
+            EffectRangeData originalData, ushort sequence, 
+            long targetObjectId, Lazy<GameObject?> target)
+        {
+            bool actionReplaced = false;
+            if (Plugin.BuddyList.PetBuddyPresent)
+            {
+                var pet = Plugin.BuddyList.PetBuddy?.GameObject;
+                if (pet != null)
+                {
+#if DEBUG
+                    PluginLog.Debug($"** ---check pet/pet-like action: pet objId={pet.ObjectId:X}, pos={pet.Position}");
+#endif
+
+                    if (ActionData.CheckPetLikeAction(originalData, out var petLikeActionEffectRangeDataSet) 
+                        && petLikeActionEffectRangeDataSet != null)
+                    {
+                        actionReplaced = true;
+                        Plugin.LogUserDebug($"---Mapping action#{originalData.ActionId} to pet-like actions");
+                        foreach (var data in petLikeActionEffectRangeDataSet)
+                        {
+                            if (data == null) continue;
+                            if (!ShouldDrawForEffectRange(data)) continue;
+                            if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful
+                                || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
+                            recordedPetLikeActionEffectToWait[data.ActionId] = new(sequence);
+                            if (data.Range == 0)
+                                recordedPetLikeActionEffectToWait[data.ActionId].Add(
+                                    new(data, pet.Position, pet.Position, pet.Rotation, true));
+                            else
+                            {
+                                if (target.Value != null) 
+                                    recordedPetLikeActionEffectToWait[data.ActionId].Add(
+                                        new(data, pet.Position, target.Value.Position, pet.Rotation, true));
+                                else PluginLog.Error($"Cannot find valid target of id {targetObjectId:X} for action {originalData.ActionId}");
+                            }
+                            Plugin.LogUserDebug($"----Possible pet-like action: {data}");
+                        }
+                    }
+
+                    if (Plugin.Config.DrawOwnPets 
+                        && ActionData.CheckPetAction(originalData, out var petActionEffectRangeDataSet)
+                        && petActionEffectRangeDataSet != null)
+                    {
+                        actionReplaced = true;
+                        Plugin.LogUserDebug($"---Mapping action#{originalData.ActionId} to pet actions");
+                        foreach (var data in petActionEffectRangeDataSet)
+                        {
+                            if (data == null) continue;
+                            if (!ShouldDrawForEffectRange(data)) continue;
+                            if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful
+                                || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
+                            recordedPetActionEffectToWait[data.ActionId] = new(sequence);
+                            if (data.Range == 0)
+                                recordedPetActionEffectToWait[data.ActionId].Add(
+                                    new(data, pet.Position, pet.Position, pet.Rotation, true));
+                            else
+                            {
+                                if (target.Value != null) recordedPetActionEffectToWait[data.ActionId].Add(
+                                    new(data, pet.Position, target.Value.Position, pet.Rotation, true));
+                                else PluginLog.Error($"Cannot find valid target of id {targetObjectId:X} for action {originalData.ActionId}");
+                            }
+                            Plugin.LogUserDebug($"----Possible pet action: {data}");
+                        }
+                    }
+                }
+            }
+            return actionReplaced;
+        }
+
+        private static HashSet<EffectRangeData> CheckEffectRangeDataOverriding(
+            EffectRangeData originalData)
+        {
+            var dataset = ActionData.CheckEffectRangeDataOverriding(originalData);
+            Plugin.LogUserDebug($"---Action#{originalData.ActionId} data overriden:\n" +
+                $"{string.Join('\n', dataset.Select(data => data.ToString()))}");
+            return dataset;
+        }
+
+        #endregion
 
         private static uint playerClassJob;
 
