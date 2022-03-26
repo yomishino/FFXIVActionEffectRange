@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Collections.Immutable;
 
-namespace ActionEffectRange.Actions.Data
+namespace ActionEffectRange.Actions.Data.Predefined
 {
     // Actions implemented as pet actions
     public class PetLikeActionMap

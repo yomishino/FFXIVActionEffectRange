@@ -1,7 +1,7 @@
 ﻿using ActionEffectRange.Actions.EffectRange;
 using System.Collections.Generic;
 
-namespace ActionEffectRange.Actions.Data
+namespace ActionEffectRange.Actions.Data.Predefined
 {
     // The remaining cases for EffectRangeData overriding
     // that are not templatised yet

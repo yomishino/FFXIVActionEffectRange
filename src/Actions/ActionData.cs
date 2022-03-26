@@ -1,4 +1,4 @@
-﻿using ActionEffectRange.Actions.Data;
+﻿using ActionEffectRange.Actions.Data.Predefined;
 using ActionEffectRange.Actions.EffectRange;
 using ActionEffectRange.Actions.Enums;
 using Lumina.Excel;

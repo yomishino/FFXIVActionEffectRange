@@ -3,7 +3,7 @@ using ActionEffectRange.Actions.Enums;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
-namespace ActionEffectRange.Actions.Data
+namespace ActionEffectRange.Actions.Data.Predefined
 {
     public static class AoETypeOverridingMap
     {

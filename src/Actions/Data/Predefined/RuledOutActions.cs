@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 
-namespace ActionEffectRange.Actions.Data
+namespace ActionEffectRange.Actions.Data.Predefined
 {
     public static class RuledOutActions
     {

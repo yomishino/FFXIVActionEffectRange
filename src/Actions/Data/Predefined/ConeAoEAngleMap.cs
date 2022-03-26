@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System;
 
-namespace ActionEffectRange.Actions.Data
+namespace ActionEffectRange.Actions.Data.Predefined
 {
     // May be inaccurate
     public static class ConeAoEAngleMap
