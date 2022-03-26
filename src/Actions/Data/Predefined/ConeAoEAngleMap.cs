@@ -18,8 +18,8 @@ namespace ActionEffectRange.Actions.Data.Predefined
                 new(12, .25f)
             }.ToImmutableDictionary();
 
-        public static readonly ImmutableDictionary<uint, ConeAoEAngleDataItem> PredefinedSpecial
-            = new KeyValuePair<uint, ConeAoEAngleDataItem>[]
+        public static ImmutableDictionary<uint, ConeAoEAngleDataItem> PredefinedActionMap
+            => new KeyValuePair<uint, ConeAoEAngleDataItem>[]
             {
                 GeneratePair(7385, 1f / 3f, MathF.PI),  // Passage of Arms (PLD)
                 GeneratePair(24392, .5f),               // Grim Swathe (RPR)

@@ -1,4 +1,5 @@
-﻿using ActionEffectRange.Actions.Data.Predefined;
+﻿using ActionEffectRange.Actions.Data.Containers;
+using ActionEffectRange.Actions.Data.Predefined;
 using ActionEffectRange.Actions.EffectRange;
 using ActionEffectRange.Actions.Enums;
 using Lumina.Excel;
@@ -11,24 +12,18 @@ namespace ActionEffectRange.Actions
 {
     public static class ActionData
     {
-        public static readonly ActionBlacklist ActionBlacklist = new(Plugin.Config);
+        private static readonly ActionBlacklist ActionBlacklist 
+            = new(Plugin.Config);
 
-        public static readonly ExcelSheet<GeneratedSheets.Action>? ActionExcelSheet 
+
+        internal static readonly ExcelSheet<GeneratedSheets.Action>? ActionExcelSheet 
             = Plugin.DataManager.GetExcelSheet<GeneratedSheets.Action>();
 
-        public static readonly ExcelSheet<GeneratedSheets.ActionCategory>? ActionCategoryExcelSheet
+        internal static readonly ExcelSheet<GeneratedSheets.ActionCategory>? ActionCategoryExcelSheet
             = Plugin.DataManager.GetExcelSheet<GeneratedSheets.ActionCategory>();
 
         public static GeneratedSheets.Action? GetActionExcelRow(uint actionId)
             => ActionExcelSheet?.GetRow(actionId);
-
-        public static IEnumerable<GeneratedSheets.Action>? GetAllPartialMatchActionExcelRows
-            (string input, bool alsoMatchId, int maxCount, System.Func<GeneratedSheets.Action, bool>? filter)
-            => ActionExcelSheet?.Where(row => row != null 
-                && (row.Name.RawString.Contains(input, System.StringComparison.CurrentCultureIgnoreCase)
-                || alsoMatchId && row.RowId.ToString().Contains(input))
-                && (filter == null || filter(row)))
-            .Take(maxCount);
 
         public static EffectRangeData? GetActionEffectRangeDataRaw(uint actionId)
         {
@@ -68,7 +63,36 @@ namespace ActionEffectRange.Actions
         public static string GetActionCategoryName(ActionCategory actionCategory)
             => ActionCategoryExcelSheet?.GetRow((uint)actionCategory)?.Name ?? string.Empty;
 
-        public static bool IsRuledOutAction(uint actionId) => RuledOutActions.HashSet.Contains(actionId);
+
+        #region Overriding data managing 
+
+        public static void ReloadCustomisedData()
+        {
+            ActionBlacklist.Reload();
+        }
+
+        public static void SaveCustomisedData(bool writeToFile = false)
+        {
+            ActionBlacklist.Save(writeToFile);
+        }
+
+        public static bool AddToActionBlacklist(uint actionId)
+            => ActionBlacklist.Add(actionId);
+
+        public static bool RemoveFromActionBlacklist(uint actionId)
+            => ActionBlacklist.Remove(actionId);
+
+        public static IEnumerable<uint> GetCustomisedActionBlacklistCopy()
+            => ActionBlacklist.CopyCustomised();
+
+        
+        #endregion
+
+
+        #region Customisation & overriding processing 
+
+        public static bool IsActionBlacklisted(uint actionId)
+            => ActionBlacklist.Contains(actionId);
 
         public static bool CheckPetAction(EffectRangeData ownerActionData, 
             out HashSet<EffectRangeData>? petActionEffectRangeDataSet)
@@ -130,8 +154,8 @@ namespace ActionEffectRange.Actions
             
             // TODO: check user overriding, return if any
 
-            if (ConeAoEAngleMap.PredefinedSpecial.TryGetValue(
-                original.ActionId, out var coneData))
+            if (ConeAoEAngleMap.PredefinedActionMap.TryGetValue(original.ActionId, out var coneData)
+                && coneData != null)
                 return new ConeAoEEffectRangeData(
                     original, coneData.CentralAngleBy2pi, coneData.RotationOffset);
 
@@ -152,8 +176,6 @@ namespace ActionEffectRange.Actions
             return original;
         }
 
-
-        public static bool IsActionBlacklisted(uint actionId) 
-            => ActionBlacklist.Contains(actionId);
+        #endregion
     }
 }
