@@ -28,6 +28,13 @@ namespace ActionEffectRange.UI
             ImGuiComponents.HelpMarker(helpText);
         }
 
+        public static bool Button(string label, string? tooltip = null)
+        {
+            var ret = ImGui.Button(label);
+            SetTooltipIfHovered(tooltip);
+            return ret;
+        }
+
         public static bool IconButton(int id, FontAwesomeIcon icon, string? tooltip = null)
         {
             var ret = ImGuiComponents.IconButton(id, icon);

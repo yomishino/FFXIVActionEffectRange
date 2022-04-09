@@ -1,5 +1,6 @@
 ﻿using ActionEffectRange.Actions;
 using ImGuiNET;
+using System.Diagnostics;
 
 namespace ActionEffectRange.UI
 {
@@ -168,6 +169,27 @@ namespace ActionEffectRange.UI
 
                     ImGui.TreePush();
                     ImGui.Checkbox($"[DEBUG] Log debug info to Dalamud Console", ref Plugin.Config.LogDebug);
+                    ImGui.NewLine();
+                    ImGui.Checkbox("Show Sponsor/Support button", ref Plugin.Config.showSponsor);
+                    if (Plugin.Config.showSponsor)
+                    {
+                        ImGui.Indent();
+                        ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000 | 0x005E5BFF);
+                        ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xDD000000 | 0x005E5BFF);
+                        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xAA000000 | 0x005E5BFF);
+                        if (ImGuiExt.Button("Buy Yomishino a coffee", 
+                            "You can support me and buy me a coffee if you want.\n" +
+                            "(Will open external link to Ko-fi in your browser)"))
+                        {
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = "https://ko-fi.com/yomishino",
+                                UseShellExecute = true
+                            });
+                        }
+                        ImGui.PopStyleColor(3);
+                        ImGui.Unindent();
+                    }
                     ImGui.TreePop();
                 }
 

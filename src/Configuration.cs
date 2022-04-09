@@ -44,6 +44,7 @@ namespace ActionEffectRange
         
 
         public bool LogDebug = false;
+        public bool showSponsor = false;
 
 
         public void Save()
