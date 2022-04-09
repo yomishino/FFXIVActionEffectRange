@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System;
 
-namespace ActionEffectRange.Actions.Data
+namespace ActionEffectRange.Actions.Data.Predefined
 {
     // May be inaccurate
     public static class ConeAoEAngleMap
     {
-        public const float DefaultAngle = 1f / 3f;
+        // All central angles used internally are in cycles (1 cycle = 2pi)
+        // RotaionOffsets are in radians though,
+        // to be consistent and directly applicable with character rotation
+
+        public const float DefaultAngleCycles = 1f / 3f;
 
         public static readonly ImmutableDictionary<byte, float> DefaultAnglesByRange
             = new KeyValuePair<byte, float>[]
@@ -18,8 +22,8 @@ namespace ActionEffectRange.Actions.Data
                 new(12, .25f)
             }.ToImmutableDictionary();
 
-        public static readonly ImmutableDictionary<uint, ConeAoEAngleDataItem> PredefinedSpecial
-            = new KeyValuePair<uint, ConeAoEAngleDataItem>[]
+        public static ImmutableDictionary<uint, ConeAoEAngleDataItem> PredefinedActionMap
+            => new KeyValuePair<uint, ConeAoEAngleDataItem>[]
             {
                 GeneratePair(7385, 1f / 3f, MathF.PI),  // Passage of Arms (PLD)
                 GeneratePair(24392, .5f),               // Grim Swathe (RPR)
@@ -29,9 +33,7 @@ namespace ActionEffectRange.Actions.Data
                 GeneratePair(7418, .25f),               // Flamethrower (MCH)
                 GeneratePair(25791, 1f / 3f),           // Fan Dance IV (DNC)
 
-                // TODO: 25781 - ogi namikiri (SAM), 25782 - kaeshi namikiri (SAM): 120deg (as default) ?
-
-                GeneratePair(18899, 1f / 3f),     // glory slash (PLD pvp)
+                GeneratePair(18899, 1f / 3f),           // glory slash (PLD pvp)
                 GeneratePair(27813, .5f),                // Grim Swathe (RPR pvp)
                 GeneratePair(27804, .5f),                // Guillotine (RPR pvp)
                 GeneratePair(27805, .5f),                // Grim Reaping (RPR pvp)

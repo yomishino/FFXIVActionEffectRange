@@ -103,10 +103,11 @@ namespace ActionEffectRange.Drawing
                         new FacingDirectedConeAoEDrawData(originPos,
                             rotation + coneData.RotationOffset,
                             coneData.EffectRange, coneData.XAxisModifier,
-                            coneData.CentralAngleBy2Pi, ringCol, fillCol) :
+                            coneData.CentralAngleCycles, ringCol, fillCol) :
                         new TargetDirectedConeAoEDrawData(originPos, targetPos,
                             coneData.EffectRange, coneData.XAxisModifier,
-                            coneData.CentralAngleBy2Pi, ringCol, fillCol));
+                            coneData.CentralAngleCycles, coneData.RotationOffset, 
+                            ringCol, fillCol));
                     break;
                 case LineAoEEffectRangeData lineData:
                     drawData.Enqueue(originPos == targetPos 

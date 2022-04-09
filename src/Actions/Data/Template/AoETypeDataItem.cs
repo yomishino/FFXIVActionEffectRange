@@ -1,10 +1,10 @@
 ﻿namespace ActionEffectRange.Actions.Data.Template
 {
-    public class AoETypeDataItem
+    public class AoETypeDataItem : IDataItem
     {
-        public readonly uint ActionId;
-        public readonly byte CastType;
-        public readonly bool IsHarmful;
+        public uint ActionId { get; }
+        public byte CastType { get; }
+        public bool IsHarmful { get; }
 
         public AoETypeDataItem(uint actionId, byte castType, bool isHarmful)
         {

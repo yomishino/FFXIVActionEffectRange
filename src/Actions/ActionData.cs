@@ -1,4 +1,6 @@
-﻿using ActionEffectRange.Actions.Data;
+﻿using ActionEffectRange.Actions.Data.Containers;
+using ActionEffectRange.Actions.Data.Predefined;
+using ActionEffectRange.Actions.Data.Template;
 using ActionEffectRange.Actions.EffectRange;
 using ActionEffectRange.Actions.Enums;
 using Lumina.Excel;
@@ -11,24 +13,20 @@ namespace ActionEffectRange.Actions
 {
     public static class ActionData
     {
-        public static readonly ActionBlacklist ActionBlacklist = new(Plugin.Config);
+        private static readonly ActionBlacklist actionBlacklist
+            = new(Plugin.Config);
+        private static readonly ConeAoeAngleOverridingList coneAoeOverridingList
+            = new(Plugin.Config);
 
-        public static readonly ExcelSheet<GeneratedSheets.Action>? ActionExcelSheet 
+
+        internal static readonly ExcelSheet<GeneratedSheets.Action>? ActionExcelSheet
             = Plugin.DataManager.GetExcelSheet<GeneratedSheets.Action>();
 
-        public static readonly ExcelSheet<GeneratedSheets.ActionCategory>? ActionCategoryExcelSheet
+        internal static readonly ExcelSheet<GeneratedSheets.ActionCategory>? ActionCategoryExcelSheet
             = Plugin.DataManager.GetExcelSheet<GeneratedSheets.ActionCategory>();
 
         public static GeneratedSheets.Action? GetActionExcelRow(uint actionId)
             => ActionExcelSheet?.GetRow(actionId);
-
-        public static IEnumerable<GeneratedSheets.Action>? GetAllPartialMatchActionExcelRows
-            (string input, bool alsoMatchId, int maxCount, System.Func<GeneratedSheets.Action, bool>? filter)
-            => ActionExcelSheet?.Where(row => row != null 
-                && (row.Name.RawString.Contains(input, System.StringComparison.CurrentCultureIgnoreCase)
-                || alsoMatchId && row.RowId.ToString().Contains(input))
-                && (filter == null || filter(row)))
-            .Take(maxCount);
 
         public static EffectRangeData? GetActionEffectRangeDataRaw(uint actionId)
         {
@@ -38,7 +36,7 @@ namespace ActionEffectRange.Actions
                 Dalamud.Logging.PluginLog.Warning(
                     $"No Excel row found for Action#{actionId}");
                 return null;
-            }   
+            }
             return EffectRangeData.Create(row);
         }
 
@@ -55,11 +53,11 @@ namespace ActionEffectRange.Actions
             => actionRow.Recast100ms;
 
         public static bool IsPlayerCombatAction(GeneratedSheets.Action actionRow)
-            => actionRow.IsPlayerAction 
+            => actionRow.IsPlayerAction
             && IsCombatActionCategory((ActionCategory)actionRow.ActionCategory.Row);
 
         public static bool IsCombatActionCategory(ActionCategory actionCategory)
-            => actionCategory is ActionCategory.Ability or ActionCategory.AR 
+            => actionCategory is ActionCategory.Ability or ActionCategory.AR
             or ActionCategory.LB or ActionCategory.Spell or ActionCategory.WS;
 
         public static bool IsSpecialOrArtilleryActionCategory(ActionCategory actionCategory)
@@ -68,13 +66,53 @@ namespace ActionEffectRange.Actions
         public static string GetActionCategoryName(ActionCategory actionCategory)
             => ActionCategoryExcelSheet?.GetRow((uint)actionCategory)?.Name ?? string.Empty;
 
-        public static bool IsRuledOutAction(uint actionId) => RuledOutActions.HashSet.Contains(actionId);
 
-        public static bool CheckPetAction(EffectRangeData ownerActionData, 
+        #region Overriding data managing 
+
+        public static void ReloadCustomisedData()
+        {
+            actionBlacklist.Reload();
+            coneAoeOverridingList.Reload();
+        }
+
+        public static void SaveCustomisedData(bool writeToFile = false)
+        {
+            actionBlacklist.Save(writeToFile);
+            coneAoeOverridingList.Save(writeToFile);
+        }
+
+        public static bool AddToActionBlacklist(uint actionId)
+            => actionBlacklist.Add(actionId);
+
+        public static bool RemoveFromActionBlacklist(uint actionId)
+            => actionBlacklist.Remove(actionId);
+
+        public static IEnumerable<BlacklistedActionDataItem> GetCustomisedActionBlacklistCopy()
+            => actionBlacklist.CopyCustomised();
+
+        public static bool AddToConeAoEAngleList(
+            uint actionId, float centralAngleCycles, float rotationOffset)
+            => coneAoeOverridingList.Add(new(actionId, centralAngleCycles, rotationOffset));
+
+        public static bool RemoveFromConeAoEAngleList(uint actionId)
+            => coneAoeOverridingList.Remove(actionId);
+
+        public static IEnumerable<ConeAoEAngleDataItem> GetCustomisedConeAoEAngleListCopy()
+            => coneAoeOverridingList.CopyCustomised();
+
+        #endregion
+
+
+        #region Customisation & overriding processing 
+
+        public static bool IsActionBlacklisted(uint actionId)
+            => actionBlacklist.Contains(actionId);
+
+        public static bool CheckPetAction(EffectRangeData ownerActionData,
             out HashSet<EffectRangeData>? petActionEffectRangeDataSet)
         {
             petActionEffectRangeDataSet = null;
-            if (!PetActionMap.Dictionary.TryGetValue(ownerActionData.ActionId, out var petActionIds) 
+            if (!PetActionMap.Dictionary.TryGetValue(ownerActionData.ActionId, out var petActionIds)
                 || petActionIds == null) return false;
             petActionEffectRangeDataSet = petActionIds
                 .Select(id => GetActionEffectRangeDataRaw(id))
@@ -84,11 +122,11 @@ namespace ActionEffectRange.Actions
             return petActionEffectRangeDataSet.Any();
         }
 
-        public static bool CheckPetLikeAction(EffectRangeData ownerActionData, 
+        public static bool CheckPetLikeAction(EffectRangeData ownerActionData,
             out HashSet<EffectRangeData>? petLikeActionEffectRangeDataSet)
         {
             petLikeActionEffectRangeDataSet = null;
-            if (!PetLikeActionMap.Dictionary.TryGetValue(ownerActionData.ActionId, out var petActionIds) 
+            if (!PetLikeActionMap.Dictionary.TryGetValue(ownerActionData.ActionId, out var petActionIds)
                 || petActionIds == null) return false;
             petLikeActionEffectRangeDataSet = petActionIds
                 .Select(id => GetActionEffectRangeDataRaw(id))
@@ -127,13 +165,11 @@ namespace ActionEffectRange.Actions
         private static EffectRangeData CheckConeAoEAngleOverriding(EffectRangeData original)
         {
             if (original is not ConeAoEEffectRangeData) return original;
-            
-            // TODO: check user overriding, return if any
 
-            if (ConeAoEAngleMap.PredefinedSpecial.TryGetValue(
-                original.ActionId, out var coneData))
+            if (coneAoeOverridingList.TryGet(original.ActionId, out var coneData)
+                && coneData != null)
                 return new ConeAoEEffectRangeData(
-                    original, coneData.CentralAngleBy2pi, coneData.RotationOffset);
+                    original, coneData.CentralAngleCycles, coneData.RotationOffset);
 
             if (ConeAoEAngleMap.DefaultAnglesByRange.TryGetValue(
                 original.EffectRange, out var angle))
@@ -152,8 +188,6 @@ namespace ActionEffectRange.Actions
             return original;
         }
 
-
-        public static bool IsActionBlacklisted(uint actionId) 
-            => ActionBlacklist.Contains(actionId);
+        #endregion
     }
 }

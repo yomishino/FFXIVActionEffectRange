@@ -223,7 +223,7 @@ namespace ActionEffectRange.Actions
             => actionType == 0x1 || actionType == 0xE; // pve 0x1, pvp 0xE
 
         private static bool ShouldDrawForAction(uint actionId)
-            => !(ActionData.IsRuledOutAction(actionId) || ActionData.IsActionBlacklisted(actionId));
+            => !ActionData.IsActionBlacklisted(actionId);
 
         private static bool ShouldProcessAction(byte actionType, uint actionId)
             => ShouldDrawForActionType(actionType) && ShouldDrawForAction(actionId);

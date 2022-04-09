@@ -1,4 +1,5 @@
-﻿using Dalamud.Configuration;
+﻿using ActionEffectRange.Actions.Data.Template;
+using Dalamud.Configuration;
 using Newtonsoft.Json;
 using System;
 using System.Numerics;
@@ -39,9 +40,11 @@ namespace ActionEffectRange
         public float PersistSeconds = 1;
 
         public uint[] ActionBlacklist = Array.Empty<uint>();
+        public ConeAoEAngleDataItem[] ConeAoeAngleList = Array.Empty<ConeAoEAngleDataItem>();
         
 
         public bool LogDebug = false;
+        public bool showSponsor = false;
 
 
         public void Save()

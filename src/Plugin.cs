@@ -1,6 +1,7 @@
 ﻿using ActionEffectRange.Actions;
 using ActionEffectRange.Drawing;
 using ActionEffectRange.Helpers;
+using ActionEffectRange.UI;
 using Dalamud.Data;
 using Dalamud.Game;
 using Dalamud.Game.Command;
@@ -123,7 +124,7 @@ namespace ActionEffectRange
             //Enabled = Config.Enabled;
 
             if (reloadSavedList)
-                ActionData.ActionBlacklist.Reload();
+                ActionData.ReloadCustomisedData();
         }
 
         public static void LogUserDebug(string msg)
