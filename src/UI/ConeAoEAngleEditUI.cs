@@ -59,10 +59,8 @@ namespace ActionEffectRange.UI
                 "For example, set it to 180 so that the sector will be drawn to the opposite direction.\n" +
                 "(You probably won't need this though.)");
             ImGuiExt.MultiTextWrapped(
-                "Both Central Angle and Rotation Offset are specified in degrees.\n" +
-                "E.g., a value of 90 means 90 degrees");
-            ImGuiExt.MultiTextWrapped(
-                "Note: settings here only apply to AoE actions that are regarded as Cone AoE by this plugin.");
+                "Both Central Angle and Rotation Offset are specified in degrees.",
+                "E.g., a value of 90 means 90 degrees\n");
             ImGui.NewLine();
         }
 

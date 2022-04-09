@@ -15,6 +15,8 @@ namespace ActionEffectRange.Actions
     {
         private static readonly ActionBlacklist actionBlacklist
             = new(Plugin.Config);
+        private static readonly AoETypeOverridingList aoeTypeOverridingList
+            = new(Plugin.Config);
         private static readonly ConeAoeAngleOverridingList coneAoeOverridingList
             = new(Plugin.Config);
 
@@ -72,12 +74,14 @@ namespace ActionEffectRange.Actions
         public static void ReloadCustomisedData()
         {
             actionBlacklist.Reload();
+            aoeTypeOverridingList.Reload();
             coneAoeOverridingList.Reload();
         }
 
         public static void SaveCustomisedData(bool writeToFile = false)
         {
             actionBlacklist.Save(writeToFile);
+            aoeTypeOverridingList.Save(writeToFile);
             coneAoeOverridingList.Save(writeToFile);
         }
 
@@ -89,6 +93,16 @@ namespace ActionEffectRange.Actions
 
         public static IEnumerable<BlacklistedActionDataItem> GetCustomisedActionBlacklistCopy()
             => actionBlacklist.CopyCustomised();
+
+        public static bool AddToAoETypeList(
+            uint actionId, byte castType, bool isHarmful)
+            => aoeTypeOverridingList.Add(new(actionId, castType, isHarmful));
+
+        public static bool RemoveFromAoETypeList(uint actionId)
+            => aoeTypeOverridingList.Remove(actionId);
+
+        public static IEnumerable<AoETypeDataItem> GetCustomisedAoETypeListCopy()
+            => aoeTypeOverridingList.CopyCustomised();
 
         public static bool AddToConeAoEAngleList(
             uint actionId, float centralAngleCycles, float rotationOffset)
@@ -150,15 +164,12 @@ namespace ActionEffectRange.Actions
 
         private static EffectRangeData CheckAoETypeOverriding(EffectRangeData original)
         {
-            // TODO: check user overriding, return if any
-
-            if (AoETypeOverridingMap.PredefinedSpecial.TryGetValue(
-                original.ActionId, out var data))
+            if (aoeTypeOverridingList.TryGet(original.ActionId, out var data)
+                && data != null)
                 return EffectRangeData.Create(
                     original.ActionId, (uint)original.Category, original.IsGTAction,
                     data.IsHarmful, original.Range, original.EffectRange,
                     original.XAxisModifier, data.CastType, isOriginal: false);
-
             return original;
         }
 
