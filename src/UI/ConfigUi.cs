@@ -5,6 +5,7 @@ namespace ActionEffectRange.UI
 {
     public static class ConfigUi
     {
+        private static readonly ActionBlacklistEditUI actionBlacklistEditUI = new();
         private static readonly ConeAoEAngleEditUI coneAoEAngleEditUI = new();
 
         public static void Draw()
@@ -156,7 +157,7 @@ namespace ActionEffectRange.UI
 
                     ImGui.TreePush();
                     if (ImGui.Button("Edit Action Blacklist"))
-                        ActionBlacklistEditUI.OpenUI();
+                        actionBlacklistEditUI.OpenUI();
                     if (ImGui.Button("Customise Cone AoE Drawing"))
                         coneAoEAngleEditUI.OpenUI();
                     ImGui.TreePop();
@@ -188,13 +189,13 @@ namespace ActionEffectRange.UI
 
         private static void DrawSubUIs()
         {
-            ActionBlacklistEditUI.Draw();
+            actionBlacklistEditUI.Draw();
             coneAoEAngleEditUI.Draw();
         }
 
         private static void CloseSubUIs()
         {
-            ActionBlacklistEditUI.CloseUI();
+            actionBlacklistEditUI.CloseUI();
             coneAoEAngleEditUI.CloseUI();
         }
 

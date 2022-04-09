@@ -1,10 +1,11 @@
 ﻿using ActionEffectRange.Actions.Data.Predefined;
+using ActionEffectRange.Actions.Data.Template;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace ActionEffectRange.Actions.Data.Containers
 {
-    public class ActionBlacklist : IActionDataContainer<uint>
+    public class ActionBlacklist : IActionDataContainer<BlacklistedActionDataItem>
     {
         private readonly Configuration config;
         private readonly HashSet<uint> predefinedBlacklist;
@@ -33,22 +34,39 @@ namespace ActionEffectRange.Actions.Data.Containers
             || predefinedBlacklist.Contains(actionId);
 
         public bool Add(uint actionId)
-            => actionId > 0 && customisedBlacklist.Add(actionId);
+            => actionId > 0 && Add(PackDataItem(actionId));
 
-        public bool Remove(uint actionId) => customisedBlacklist.Remove(actionId);
+        public bool Add(BlacklistedActionDataItem item)
+            => customisedBlacklist.Add(item.ActionId);
+
+        public bool Remove(uint actionId)
+            => customisedBlacklist.Remove(actionId);
 
         public bool TryGet(uint actionId, out uint item)
             => customisedBlacklist.TryGetValue(actionId, out item)
             || predefinedBlacklist.TryGetValue(actionId, out item);
 
-        public IEnumerable<uint> CopyCustomised()
+        public bool TryGet(uint actionId, out BlacklistedActionDataItem? item)
+        {
+            item = Contains(actionId) ? PackDataItem(actionId) : null;
+            return item != null;
+        }
+
+        public IEnumerable<uint> CopyCustomisedRaw()
             => new List<uint>(customisedBlacklist).AsEnumerable();
+
+        public IEnumerable<BlacklistedActionDataItem> CopyCustomised()
+            => CopyCustomisedRaw().Select(PackDataItem).ToList().AsEnumerable();
 
         public void Save(bool writeToFile = false)
         {
-            config.ActionBlacklist = CopyCustomised().ToArray();
+            config.ActionBlacklist = CopyCustomisedRaw().ToArray();
             if (writeToFile) config.Save();
         }
+
+        private static BlacklistedActionDataItem PackDataItem(uint actionId)
+            => new(actionId);
+
     }
 
 }

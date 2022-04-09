@@ -87,7 +87,7 @@ namespace ActionEffectRange.Actions
         public static bool RemoveFromActionBlacklist(uint actionId)
             => actionBlacklist.Remove(actionId);
 
-        public static IEnumerable<uint> GetCustomisedActionBlacklistCopy()
+        public static IEnumerable<BlacklistedActionDataItem> GetCustomisedActionBlacklistCopy()
             => actionBlacklist.CopyCustomised();
 
         public static bool AddToConeAoEAngleList(
