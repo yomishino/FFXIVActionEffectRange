@@ -132,12 +132,17 @@ namespace ActionEffectRange.UI
         protected class DataTableModel
         {
             private readonly string label;
+            private readonly Action<uint> deleteAction;
             private readonly List<EditDataColumn> editDataColumns = new();
 
             public int EditDataColumnCount => editDataColumns.Count;
             public int TotalColumnCount => EditDataColumnCount + 4;
 
-            public DataTableModel(string label) => this.label = label;
+            public DataTableModel(string label, Action<uint> deleteAction)
+            {
+                this.label = label;
+                this.deleteAction = deleteAction;
+            }
 
             public void DrawTable(IEnumerable<T> data)
             {
@@ -194,7 +199,7 @@ namespace ActionEffectRange.UI
                     ImGui.TableNextColumn();
                     if (ImGuiExt.IconButton(
                         (int)entry.ActionId, FontAwesomeIcon.Minus, "Delete"))
-                        ActionData.RemoveFromConeAoEAngleList(entry.ActionId);
+                        deleteAction(entry.ActionId);
                 }
             }
 

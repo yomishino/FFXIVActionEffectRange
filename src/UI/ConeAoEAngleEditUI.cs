@@ -34,7 +34,9 @@ namespace ActionEffectRange.UI
 
         private void BuildDataTableModel()
         {
-            var model = new DataTableModel("ActionEffectRange_Tbl_ConeAoEAngleEdit");
+            var model = new DataTableModel(
+                "ActionEffectRange_Tbl_ConeAoEAngleEdit",
+                actionId => ActionData.RemoveFromConeAoEAngleList(actionId));
             model.AddDataColumn("Central\n Angle", ImGuiTableColumnFlags.WidthFixed, 
                 false, 0, d => $"{ActionDataInterfacing.CycleToDeg(d.CentralAngleCycles):0}");
             model.AddDataColumn("Rotation\n Offset", ImGuiTableColumnFlags.WidthFixed,
