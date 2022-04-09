@@ -86,6 +86,17 @@ namespace ActionEffectRange.UI
             SetTooltipIfHovered(tooltip);
         }
 
+        public static void ComboWithTooltip(string prompt, string label,
+            ref int selected, string[] items, int itemCount, 
+            float comboWidth, string? tooltip)
+        {
+            ImGui.Text(prompt);
+            SetTooltipIfHovered(tooltip);
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(comboWidth);
+            ImGui.Combo(label, ref selected, items, itemCount);
+            SetTooltipIfHovered(tooltip);
+        }
 
         public static void SetTooltipIfHovered(string? tooltip)
         {

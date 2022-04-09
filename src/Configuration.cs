@@ -40,8 +40,8 @@ namespace ActionEffectRange
         public float PersistSeconds = 1;
 
         public uint[] ActionBlacklist = Array.Empty<uint>();
+        public AoETypeDataItem[] AoETypeList = Array.Empty<AoETypeDataItem>();
         public ConeAoEAngleDataItem[] ConeAoeAngleList = Array.Empty<ConeAoEAngleDataItem>();
-        
 
         public bool LogDebug = false;
         public bool showSponsor = false;

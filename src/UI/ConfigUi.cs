@@ -7,6 +7,7 @@ namespace ActionEffectRange.UI
     public static class ConfigUi
     {
         private static readonly ActionBlacklistEditUI actionBlacklistEditUI = new();
+        private static readonly AoETypeEditUi aoeTypeEditUI = new();
         private static readonly ConeAoEAngleEditUI coneAoEAngleEditUI = new();
 
         public static void Draw()
@@ -156,9 +157,19 @@ namespace ActionEffectRange.UI
                     ImGui.Separator();
                     ImGui.NewLine();
 
+                    ImGuiExt.BulletTextWrappedWithHelpMarker("Advanced Customisation Options", 
+                        "Use these customisation options to control the drawing for specific actions.\n\n" +
+                        "This is mainly for providing a temporary fix to incorrect drawing, " +
+                        "such as incorrect Cone AoE angles.\n" +
+                        "Usually you don't need to care about any of these customisations.");
+                    ImGui.NewLine();
                     ImGui.TreePush();
                     if (ImGui.Button("Edit Action Blacklist"))
                         actionBlacklistEditUI.OpenUI();
+                    // TODO: this is too confusing and useless rn, unless
+                    // there're customisations for other data such as effect range after types being overriden.
+                    //if (ImGui.Button("Customise AoE Types"))
+                    //    aoeTypeEditUI.OpenUI();
                     if (ImGui.Button("Customise Cone AoE Drawing"))
                         coneAoEAngleEditUI.OpenUI();
                     ImGui.TreePop();
@@ -212,12 +223,14 @@ namespace ActionEffectRange.UI
         private static void DrawSubUIs()
         {
             actionBlacklistEditUI.Draw();
+            aoeTypeEditUI.Draw();
             coneAoEAngleEditUI.Draw();
         }
 
         private static void CloseSubUIs()
         {
             actionBlacklistEditUI.CloseUI();
+            aoeTypeEditUI.CloseUI();
             coneAoEAngleEditUI.CloseUI();
         }
 
