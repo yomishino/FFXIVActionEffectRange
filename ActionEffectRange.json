@@ -12,6 +12,6 @@
   ],
   "ImageUrls": "",
   "IconUrl": "",
-  "Changelog": "- Small changes to Action Blacklist: opening the Edit window will no longer freeze other windows \n- Fix a bug where Stellar Detonation (AST) would not be treated as beneficial type AoE. (It is treated as both benficial and harmful now.)",
+  "Changelog": "- Drawing of Cone AoEs can now be customised in the Cone AoE Edit window \n- Opening the Edit window (including Action Blacklist Edit window) will no longer freeze other windows \n- Fix a bug where Stellar Detonation (AST) would not be treated as beneficial type AoE. (It is treated as both benficial and harmful now.)",
   "DalamudApiLevel": 5
 }

@@ -1,16 +1,16 @@
 ﻿namespace ActionEffectRange.Actions.Data.Template
 {
-    public class ConeAoEAngleDataItem
+    public class ConeAoEAngleDataItem : IDataItem
     {
-        public readonly uint ActionId;
-        public readonly float CentralAngleBy2pi;
-        public readonly float RotationOffset;
+        public uint ActionId { get; }
+        public float CentralAngleCycles { get; }
+        public float RotationOffset { get; }
 
-        public ConeAoEAngleDataItem(uint actionId, float centralAngleBy2pi, 
-            float rotationOffset = 0)
+        public ConeAoEAngleDataItem(uint actionId, 
+            float centralAngleCycles, float rotationOffset = 0)
         {
             ActionId = actionId;
-            CentralAngleBy2pi = centralAngleBy2pi;
+            CentralAngleCycles = centralAngleCycles;
             RotationOffset = rotationOffset;
         }
     }

@@ -5,6 +5,8 @@ namespace ActionEffectRange.UI
 {
     public static class ConfigUi
     {
+        private static readonly ConeAoEAngleEditUI coneAoEAngleEditUI = new();
+
         public static void Draw()
         {
             if (!Plugin.InConfig) return;
@@ -94,11 +96,10 @@ namespace ActionEffectRange.UI
                     ImGui.Unindent();
                     if (Plugin.Config.LargeDrawOpt > 0)
                     {
-                        ImGuiExt.InputIntWithTooltip("Apply to actions with effect range >= ", ref Plugin.Config.LargeThreshold, 1, 1, 0, 80,
+                        ImGuiExt.InputIntWithTooltip("Apply to actions with effect range >= ", 
+                            ref Plugin.Config.LargeThreshold, 1, 1, 5, 55, 0, 80,
                             "The setting will be applied to actions with at least the specified effect range." +
                             "\nFor example, if set to 15, AoE such as Medica and Medica II will be affected by the setting, but not Cure III.");
-                        if (Plugin.Config.LargeThreshold < 0) Plugin.Config.LargeThreshold = 0;
-                        if (Plugin.Config.LargeThreshold > 55) Plugin.Config.LargeThreshold = 55;
                     }
                     ImGui.TreePop();
 
@@ -156,6 +157,8 @@ namespace ActionEffectRange.UI
                     ImGui.TreePush();
                     if (ImGui.Button("Edit Action Blacklist"))
                         ActionBlacklistEditUI.OpenUI();
+                    if (ImGui.Button("Customise Cone AoE Drawing"))
+                        coneAoEAngleEditUI.OpenUI();
                     ImGui.TreePop();
 
                     ImGui.NewLine();
@@ -186,11 +189,13 @@ namespace ActionEffectRange.UI
         private static void DrawSubUIs()
         {
             ActionBlacklistEditUI.Draw();
+            coneAoEAngleEditUI.Draw();
         }
 
         private static void CloseSubUIs()
         {
             ActionBlacklistEditUI.CloseUI();
+            coneAoEAngleEditUI.CloseUI();
         }
 
     }

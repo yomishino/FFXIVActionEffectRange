@@ -115,7 +115,7 @@ namespace ActionEffectRange.UI
                 actionBlacklistMatchedActions 
                     = string.IsNullOrWhiteSpace(input) ? null
                     : ActionDataInterfacing.GetAllPartialMatchActionExcelRows(
-                        actionBlacklistSearchInput, true, int.MaxValue,
+                        actionBlacklistSearchInput, true, int.MaxValue, true,
                         a => a != null && ActionData.IsPlayerCombatAction(a))?
                     .ToList();
                 shouldShowActionSearchMatches 

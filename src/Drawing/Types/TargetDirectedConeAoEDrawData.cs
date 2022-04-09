@@ -1,5 +1,4 @@
-﻿using System;
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace ActionEffectRange.Drawing.Types
 {
@@ -7,7 +6,11 @@ namespace ActionEffectRange.Drawing.Types
     {
         public readonly Vector3 Target;
 
-        public TargetDirectedConeAoEDrawData(Vector3 origin, Vector3 target, byte baseEffectRange, byte xAxisModifier, float centralAngleBy2pi, uint ringColour, uint fillColour)
-            : base(origin, baseEffectRange, xAxisModifier, CalculateRotation(origin, target), centralAngleBy2pi, ringColour, fillColour) { }
+        public TargetDirectedConeAoEDrawData(
+            Vector3 origin, Vector3 target, byte baseEffectRange, byte xAxisModifier, 
+            float centralAngleCycles, float rotationOffset, uint ringColour, uint fillColour)
+            : base(origin, baseEffectRange, xAxisModifier, 
+                  CalculateRotation(origin, target) + rotationOffset, centralAngleCycles, 
+                  ringColour, fillColour) { }
     }
 }
