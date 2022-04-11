@@ -37,9 +37,7 @@ namespace ActionEffectRange.UI
                     ImGui.Checkbox("Enable in PvP zones", ref Plugin.Config.EnabledPvP);
                     ImGui.TreePop();
 
-                    ImGui.NewLine();
-                    ImGui.Separator();
-                    ImGui.NewLine();
+                    ImGuiExt.SpacedSeparator();
 
                     ImGui.Text("Drawing Options");
                     ImGui.NewLine();
@@ -106,9 +104,7 @@ namespace ActionEffectRange.UI
                     }
                     ImGui.TreePop();
 
-                    ImGui.NewLine();
-                    ImGui.Separator();
-                    ImGui.NewLine();
+                    ImGuiExt.SpacedSeparator();
 
                     ImGui.Text("Style options");
                     ImGui.NewLine();
@@ -140,9 +136,7 @@ namespace ActionEffectRange.UI
                     if (Plugin.Config.NumSegments > 500) Plugin.Config.NumSegments = 500;
                     ImGui.TreePop();
 
-                    ImGui.NewLine();
-                    ImGui.Separator();
-                    ImGui.NewLine();
+                    ImGuiExt.SpacedSeparator();
 
                     ImGui.TreePush();
                     ImGuiExt.DragFloatWithTooltip("Delay before drawing (sec): ", 
@@ -153,9 +147,29 @@ namespace ActionEffectRange.UI
                         "Allow the effect range drawn to last for the given time (in seconds) before erased from screen.");
                     ImGui.TreePop();
 
-                    ImGui.NewLine();
-                    ImGui.Separator();
-                    ImGui.NewLine();
+                    ImGuiExt.SpacedSeparator();
+
+                    ImGui.TreePush();
+                    ImGuiExt.CheckboxWithTooltip("Enable drawing during casting",
+                        ref Plugin.Config.DrawWhenCasting,
+                        "If enabled, will also draw effect range when you are casting an AoE action.\n" +
+                        "Currently this only works in PvE areas.");
+                    if (Plugin.Config.DrawWhenCasting)
+                    {
+                        ImGui.NewLine();
+                        ImGui.Text("Colour: ");
+                        ImGui.SameLine();
+                        ImGui.ColorEdit4("##DrawWhenCastingColour", 
+                            ref Plugin.Config.DrawWhenCastingColour);
+                        ImGuiExt.CheckboxWithTooltip("Draw until casting ends",
+                            ref Plugin.Config.DrawWhenCastingUntilCastEnd,
+                            "If enabled, drawing of the casting action will last " +
+                            "until the casting is finished or cancelled.\n" +
+                            "Otherwise it will be removed after the duration set above.");
+                    }
+                    ImGui.TreePop();
+
+                    ImGuiExt.SpacedSeparator();
 
                     ImGuiExt.BulletTextWrappedWithHelpMarker("Advanced Customisation Options", 
                         "Use these customisation options to control the drawing for specific actions.\n\n" +
@@ -174,9 +188,7 @@ namespace ActionEffectRange.UI
                         coneAoEAngleEditUI.OpenUI();
                     ImGui.TreePop();
 
-                    ImGui.NewLine();
-                    ImGui.Separator();
-                    ImGui.NewLine();
+                    ImGuiExt.SpacedSeparator();
 
                     ImGui.TreePush();
                     ImGui.Checkbox($"[DEBUG] Log debug info to Dalamud Console", ref Plugin.Config.LogDebug);
@@ -188,7 +200,7 @@ namespace ActionEffectRange.UI
                         ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000 | 0x005E5BFF);
                         ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xDD000000 | 0x005E5BFF);
                         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xAA000000 | 0x005E5BFF);
-                        if (ImGuiExt.Button("Buy Yomishino a coffee", 
+                        if (ImGuiExt.Button("Buy Yomishino a Coffee", 
                             "You can support me and buy me a coffee if you want.\n" +
                             "(Will open external link to Ko-fi in your browser)"))
                         {
@@ -204,9 +216,7 @@ namespace ActionEffectRange.UI
                     ImGui.TreePop();
                 }
 
-                ImGui.NewLine();
-                ImGui.Separator();
-                ImGui.NewLine();
+                ImGuiExt.SpacedSeparator();
 
                 if (ImGui.Button("Save & Close"))
                 {

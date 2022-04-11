@@ -5,7 +5,6 @@ using ActionEffectRange.Helpers;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Hooking;
 using Dalamud.Logging;
-using FFXIVClientStructs.FFXIV.Client.Game;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,17 +15,9 @@ namespace ActionEffectRange.Actions
 {
     public static class ActionWatcher
     {
-        private static readonly IntPtr actionMgrPtr;
-
         private static readonly Dictionary<ushort, ActionSequenceInfoSet> recordedActionSequence = new();
         private static readonly Dictionary<uint, ActionSequenceInfoSet> recordedPetActionEffectToWait = new();
         private static readonly Dictionary<uint, ActionSequenceInfoSet> recordedPetLikeActionEffectToWait = new();
-
-        private static ushort CurrentSeq => actionMgrPtr != IntPtr.Zero 
-            ? (ushort)Marshal.ReadInt16(actionMgrPtr + 0x110) : (ushort)0;
-        private static ushort LastRecievedSeq => actionMgrPtr != IntPtr.Zero 
-            ? (ushort)Marshal.ReadInt16(actionMgrPtr + 0x112) : (ushort)0;
-
 
         // Send what is executed; won't be called if queued but not yet executed or failed to execute (e.g. cast cancelled)
         // Information here also more accurate than from UseAction; handles combo/proc and target issues esp. with plugins like FFXIVCombo / ReAction 
@@ -41,7 +32,8 @@ namespace ActionEffectRange.Actions
             PluginLog.Debug($"** SendAction: targetId={targetObjectId:X}, " +
                 $"actionType={actionType}, actionId={actionId}, seq={sequence}, " +
                 $"a5={a5:X}, a6={a6:X}, a7={a7:X}, a8={a8:X}, a9={a9:X}");
-            PluginLog.Debug($"** ---AcMgr: currentSeq{CurrentSeq}, lastRecSeq={LastRecievedSeq}");
+            PluginLog.Debug($"** ---AcMgr: currentSeq{ActionManagerHelper.CurrentSeq}, " +
+                $"lastRecSeq={ActionManagerHelper.LastRecievedSeq}");
 #endif
             if (!Plugin.IsPlayerLoaded || !ShouldProcessAction(actionType, actionId)) return;
 
@@ -78,20 +70,6 @@ namespace ActionEffectRange.Actions
             }
         }
 
-        // useType == 0 when queued;
-        // if queued action not executed immediately but wait in queue till later, useType == 1 when called for actual execution
-        private delegate byte UseActionDelegate(IntPtr actionManager, byte actionType, uint actionId, long targetObjectId, uint param, uint useType, int pvp, IntPtr a8);
-        private static readonly Hook<UseActionDelegate>? UseActionHook;
-        private static byte UseActionDetour(IntPtr actionManager, byte actionType, uint actionId, long targetObjectId, uint param, uint useType, int pvp, IntPtr a8)
-        {
-            var ret = UseActionHook!.Original(actionManager, actionType, actionId, targetObjectId, param, useType, pvp, a8);
-#if DEBUG
-            PluginLog.Debug($"** UseAction: actionType={actionType}, actionId={actionId}, " +
-                $"targetId={targetObjectId:X}, param={param}, useType={useType}, pvp={pvp}, a8={a8:X}; ret={ret}");
-#endif
-            return ret;
-        }
-        
         private delegate byte UseActionLocationDelegate(IntPtr actionManager, byte actionType, uint actionId, long targetObjectId, IntPtr location, uint param);
         private static readonly Hook<UseActionLocationDelegate>? UseActionLocationHook;
         private static byte UseActionLocationDetour(IntPtr actionManager, byte actionType, uint actionId, long targetObjectId, IntPtr location, uint param)
@@ -103,16 +81,16 @@ namespace ActionEffectRange.Actions
                 $"loc={(Vector3)Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(location)} " +
                 $"param={param}; ret={ret}");
 #endif
-            if (ret == 0 || !Plugin.IsPlayerLoaded || !Plugin.Config.DrawGT 
+            if (ret == 0 || !Plugin.IsPlayerLoaded || !Plugin.Config.DrawGT
                 || !ShouldProcessAction(actionType, actionId)) return ret;
-            var seq = CurrentSeq;
+            var seq = ActionManagerHelper.CurrentSeq;
             if (recordedActionSequence.ContainsKey(seq)) return ret;
 
             Plugin.LogUserDebug($"UseActionLocation => Possible GT action #{actionId} " +
-                $"type={actionType} at Seq={CurrentSeq}, using info from UseActionLocation");
+                $"type={actionType} at Seq={ActionManagerHelper.CurrentSeq}, using info from UseActionLocation");
 
             if (!ProcessInitialStepInSend(actionId, out var originalData)) return ret;
-            if (originalData == null) return ret; 
+            if (originalData == null) return ret;
 
             // NOTE: Should've checked if the action could be mapped to some pet/pet-like actions
             // but currently none for those actions if we've reached here so just omit it for now
@@ -122,18 +100,110 @@ namespace ActionEffectRange.Actions
             foreach (var data in overridenDataSet)
             {
                 if (!data.IsGTAction || !ShouldDrawForEffectRange(data)) continue;
-                if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful 
-                    || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) 
+                if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful
+                    || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial)
                     continue;
                 // Will use location from ReceiveActionEffect for target position later
-                recordedActionSequence[seq].Add(new(data, 
-                    Plugin.ClientState.LocalPlayer!.Position, new(), 
-                    Plugin.ClientState.LocalPlayer!.Rotation)); 
+                recordedActionSequence[seq].Add(new(data,
+                    Plugin.ClientState.LocalPlayer!.Position, new(),
+                    Plugin.ClientState.LocalPlayer!.Rotation));
             }
             return ret;
         }
 
+        // useType == 0 when queued;
+        // if queued action not executed immediately but wait in queue till later, useType == 1 when called for actual execution
+        private delegate byte UseActionDelegate(IntPtr actionManager, byte actionType, uint actionId, long targetObjectId, uint param, uint useType, int pvp, IntPtr a8);
+        private static readonly Hook<UseActionDelegate>? UseActionHook;
+        private static byte UseActionDetour(IntPtr actionManager, byte actionType, uint actionId, long targetObjectId, uint param, uint useType, int pvp, IntPtr a8)
+        {
+            var ret = UseActionHook!.Original(actionManager, actionType, actionId, targetObjectId, param, useType, pvp, a8);
+#if DEBUG
+            PluginLog.Debug($"** UseAction: actionType={actionType}, actionId={actionId}, " +
+                $"targetId={targetObjectId:X}, param={param}, useType={useType}, pvp={pvp}, a8={a8:X}; ret={ret}");
+#endif
+            if (!Plugin.DrawWhenCasting) return ret;
 
+            if (ret == 0)
+            {
+#if DEBUG
+                PluginLog.Debug($"*** UseAction: NO draw-when-casting on useType={useType} && ret={ret}");
+#endif
+                return ret;
+            }
+#if DEBUG
+            PluginLog.Debug($"*** UseAction: Triggering Draw-when-casting on useType={useType} && ret={ret}");
+            PluginLog.Debug($"**** CurrentSeq={ActionManagerHelper.CurrentSeq}"); 
+#endif
+
+            var castActionId = ActionManagerHelper.CastingActionId;
+            var castTargetId = ActionManagerHelper.CastTargetObjectId;
+            Plugin.LogUserDebug($"UseAction => Triggering DrawWhenCasting, " +
+                $"CastingActionId={ActionManagerHelper.CastingActionId}, " +
+                $"CastTargetObjectId={ActionManagerHelper.CastTargetObjectId}");
+
+            if (!Plugin.IsPlayerLoaded || !ShouldProcessAction(actionType, actionId)) return ret;
+            if (!ProcessInitialStepInSend(actionId, out var originalData)) return ret;
+            if (originalData == null) return ret;
+
+            var target = new Lazy<GameObject?>(() => Plugin.ObejctTable.SearchById(castTargetId));
+
+            // Process drawing directly on triggered
+
+            // pet/pet-like
+            bool replacedActions = false;
+            if (CheckPetLikeActionsOverriding(originalData, castTargetId, target, out var petLikeSeqInfos)
+                && petLikeSeqInfos != null)
+            {
+                replacedActions = true;
+                foreach (var info in petLikeSeqInfos)
+                    EffectRangeDrawing.AddEffectRangeToDraw(
+                        ActionManagerHelper.CurrentSeq, DrawTrigger.Casting,
+                        info.EffectRangeData, info.OriginPosition,
+                        info.TargetPosition, info.ActorRotation);
+            }
+            if (CheckPetActionsOverriding(originalData, castTargetId, target, out var petSeqInfos)
+                && petSeqInfos != null)
+            {
+                replacedActions = true;
+                foreach (var info in petSeqInfos)
+                    EffectRangeDrawing.AddEffectRangeToDraw(
+                        ActionManagerHelper.CurrentSeq, DrawTrigger.Casting,
+                        info.EffectRangeData, info.OriginPosition,
+                        info.TargetPosition, info.ActorRotation);
+            }
+            if (replacedActions) return ret;
+
+            // Usual player actions
+            var overridenDataSet = CheckEffectRangeDataOverriding(originalData);
+            foreach (var data in overridenDataSet)
+            {
+                if (!ShouldDrawForEffectRange(data)) continue;
+                
+                if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful 
+                    || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
+                if (data.Range == 0)
+                    EffectRangeDrawing.AddEffectRangeToDraw(
+                        ActionManagerHelper.CurrentSeq, DrawTrigger.Casting,
+                        data, Plugin.ClientState.LocalPlayer!.Position,
+                        Plugin.ClientState.LocalPlayer!.Position,
+                        Plugin.ClientState.LocalPlayer!.Rotation);
+                else
+                {
+                    if (target.Value != null)
+                        EffectRangeDrawing.AddEffectRangeToDraw(
+                            ActionManagerHelper.CurrentSeq, DrawTrigger.Casting,
+                            data, Plugin.ClientState.LocalPlayer!.Position,
+                            target.Value.Position, 
+                            Plugin.ClientState.LocalPlayer!.Rotation);
+                    else PluginLog.Error($"Cannot find valid target of id {castTargetId:X} for action {castActionId}");
+                }
+            }
+
+            return ret;
+        }
+
+        
         private delegate void ReceiveActionEffectDelegate(int sourceObjectId, IntPtr sourceActor, IntPtr position, IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail);
         private static readonly Hook<ReceiveActionEffectDelegate>? ReceiveActionEffectHook;
         private static void ReceiveActionEffectDetour(int sourceObjectId, IntPtr sourceActor, IntPtr position, IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail)
@@ -142,7 +212,8 @@ namespace ActionEffectRange.Actions
 #if DEBUG
             PluginLog.Debug($"** ReceiveActionEffect: src={sourceObjectId:X}, " +
                 $"pos={(Vector3)Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position)}; " +
-                $"AcMgr: CurrentSeq={CurrentSeq}, LastRecSeq={LastRecievedSeq}");
+                $"AcMgr: CurrentSeq={ActionManagerHelper.CurrentSeq}, " +
+                $"LastRecSeq={ActionManagerHelper.LastRecievedSeq}");
 #endif
 
             if (!Plugin.IsPlayerLoaded) return;
@@ -170,6 +241,7 @@ namespace ActionEffectRange.Actions
                     foreach (var info in petLikeSeqInfos)
                     {
                         EffectRangeDrawing.AddEffectRangeToDraw(
+                            ActionManagerHelper.CurrentSeq, DrawTrigger.Used,
                             info.EffectRangeData, info.OriginPosition,
                             info.EffectRangeData.IsGTAction 
                                 ? Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position) 
@@ -185,6 +257,7 @@ namespace ActionEffectRange.Actions
                     foreach (var info in petSeqInfos)
                     {
                         EffectRangeDrawing.AddEffectRangeToDraw(
+                            ActionManagerHelper.CurrentSeq, DrawTrigger.Used,
                             info.EffectRangeData, info.OriginPosition,
                             info.EffectRangeData.IsGTAction 
                                 ? Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position) 
@@ -201,6 +274,7 @@ namespace ActionEffectRange.Actions
                 foreach (var info in seqInfos)
                 {
                     EffectRangeDrawing.AddEffectRangeToDraw(
+                            ActionManagerHelper.CurrentSeq, DrawTrigger.Used,
                         info.EffectRangeData, info.OriginPosition,
                             info.EffectRangeData.IsGTAction 
                                 ? Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position) 
@@ -268,63 +342,111 @@ namespace ActionEffectRange.Actions
             bool actionReplaced = false;
             if (Plugin.BuddyList.PetBuddyPresent)
             {
-                var pet = Plugin.BuddyList.PetBuddy?.GameObject;
-                if (pet != null)
+                actionReplaced |= CheckPetLikeActionsOverriding(
+                    originalData, targetObjectId, target, out var petLikeSeqInfos);
+                if (petLikeSeqInfos != null)
                 {
-#if DEBUG
-                    PluginLog.Debug($"** ---check pet/pet-like action: pet objId={pet.ObjectId:X}, pos={pet.Position}");
-#endif
-
-                    if (ActionData.CheckPetLikeAction(originalData, out var petLikeActionEffectRangeDataSet) 
-                        && petLikeActionEffectRangeDataSet != null)
+                    foreach (var seqInfo in petLikeSeqInfos)
                     {
-                        actionReplaced = true;
-                        Plugin.LogUserDebug($"---Mapping action#{originalData.ActionId} to pet-like actions");
-                        foreach (var data in petLikeActionEffectRangeDataSet)
-                        {
-                            if (data == null) continue;
-                            if (!ShouldDrawForEffectRange(data)) continue;
-                            if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful
-                                || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
-                            recordedPetLikeActionEffectToWait[data.ActionId] = new(sequence);
-                            if (data.Range == 0)
-                                recordedPetLikeActionEffectToWait[data.ActionId].Add(
-                                    new(data, pet.Position, pet.Position, pet.Rotation, true));
-                            else
-                            {
-                                if (target.Value != null) 
-                                    recordedPetLikeActionEffectToWait[data.ActionId].Add(
-                                        new(data, pet.Position, target.Value.Position, pet.Rotation, true));
-                                else PluginLog.Error($"Cannot find valid target of id {targetObjectId:X} for action {originalData.ActionId}");
-                            }
-                            Plugin.LogUserDebug($"----Possible pet-like action: {data}");
-                        }
+                        recordedPetLikeActionEffectToWait[seqInfo.ActionId] = new(sequence);
+                        recordedPetLikeActionEffectToWait[seqInfo.ActionId].Add(seqInfo);
                     }
+                }
 
-                    if (Plugin.Config.DrawOwnPets 
-                        && ActionData.CheckPetAction(originalData, out var petActionEffectRangeDataSet)
-                        && petActionEffectRangeDataSet != null)
+                if (!Plugin.Config.DrawOwnPets) return actionReplaced;
+                actionReplaced |= CheckPetActionsOverriding(
+                    originalData, targetObjectId, target, out var petSeqInfos);
+                if (petSeqInfos != null)
+                {
+                    foreach (var seqInfo in petSeqInfos)
                     {
-                        actionReplaced = true;
-                        Plugin.LogUserDebug($"---Mapping action#{originalData.ActionId} to pet actions");
-                        foreach (var data in petActionEffectRangeDataSet)
+                        recordedPetActionEffectToWait[seqInfo.ActionId] = new(sequence);
+                        recordedPetActionEffectToWait[seqInfo.ActionId].Add(seqInfo);
+                    }
+                }
+            }
+            return actionReplaced;
+        }
+
+        private static bool CheckPetLikeActionsOverriding(
+            EffectRangeData originalData, long targetObjectId,
+            Lazy<GameObject?> target, out List<ActionSequenceInfo>? seqInfos)
+        {
+            bool actionReplaced = false;
+            seqInfos = null;
+            var pet = Plugin.BuddyList.PetBuddy?.GameObject;
+            if (pet != null)
+            {
+#if DEBUG
+                PluginLog.Debug($"** ---check pet-like action: pet objId={pet.ObjectId:X}, pos={pet.Position}");
+#endif
+                if (ActionData.CheckPetLikeAction(
+                    originalData, out var petLikeActionEffectRangeDataSet)
+                    && petLikeActionEffectRangeDataSet != null)
+                {
+                    actionReplaced = true;
+                    seqInfos = new();
+                    Plugin.LogUserDebug($"---Mapping action#{originalData.ActionId} to pet-like actions");
+                    foreach (var data in petLikeActionEffectRangeDataSet)
+                    {
+                        if (data == null) continue;
+                        if (!ShouldDrawForEffectRange(data)) continue;
+                        if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful
+                            || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
+                        if (data.Range == 0)
+                            seqInfos.Add(new(data,
+                                pet.Position, pet.Position, pet.Rotation, true));
+                        else
                         {
-                            if (data == null) continue;
-                            if (!ShouldDrawForEffectRange(data)) continue;
-                            if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful
-                                || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
-                            recordedPetActionEffectToWait[data.ActionId] = new(sequence);
-                            if (data.Range == 0)
-                                recordedPetActionEffectToWait[data.ActionId].Add(
-                                    new(data, pet.Position, pet.Position, pet.Rotation, true));
-                            else
-                            {
-                                if (target.Value != null) recordedPetActionEffectToWait[data.ActionId].Add(
-                                    new(data, pet.Position, target.Value.Position, pet.Rotation, true));
-                                else PluginLog.Error($"Cannot find valid target of id {targetObjectId:X} for action {originalData.ActionId}");
-                            }
-                            Plugin.LogUserDebug($"----Possible pet action: {data}");
+                            if (target.Value != null)
+                                seqInfos.Add(new(data, pet.Position,
+                                    target.Value.Position, pet.Rotation, true));
+                            else PluginLog.Error($"Cannot find valid target of id {targetObjectId:X} for action {originalData.ActionId}");
                         }
+                        Plugin.LogUserDebug($"----Possible pet-like action: {data}");
+                    }
+                }
+            }
+            return actionReplaced;
+        }
+
+        private static bool CheckPetActionsOverriding(
+            EffectRangeData originalData, long targetObjectId,
+            Lazy<GameObject?> target, out List<ActionSequenceInfo>? seqInfos)
+        {
+            bool actionReplaced = false;
+            seqInfos = null;
+            var pet = Plugin.BuddyList.PetBuddy?.GameObject;
+            if (pet != null)
+            {
+#if DEBUG
+                PluginLog.Debug($"** ---check pet action: pet objId={pet.ObjectId:X}, pos={pet.Position}");
+#endif
+                if (Plugin.Config.DrawOwnPets
+                    && ActionData.CheckPetAction(originalData,
+                        out var petActionEffectRangeDataSet)
+                    && petActionEffectRangeDataSet != null)
+                {
+                    actionReplaced = true;
+                    seqInfos = new();
+                    Plugin.LogUserDebug($"---Mapping action#{originalData.ActionId} to pet actions");
+                    foreach (var data in petActionEffectRangeDataSet)
+                    {
+                        if (data == null) continue;
+                        if (!ShouldDrawForEffectRange(data)) continue;
+                        if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful
+                            || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
+                        if (data.Range == 0)
+                            seqInfos.Add(new(data,
+                                pet.Position, pet.Position, pet.Rotation, true));
+                        else
+                        {
+                            if (target.Value != null)
+                                seqInfos.Add(new(data, pet.Position,
+                                    target.Value.Position, pet.Rotation, true));
+                            else PluginLog.Error($"Cannot find valid target of id {targetObjectId:X} for action {originalData.ActionId}");
+                        }
+                        Plugin.LogUserDebug($"----Possible pet action: {data}");
                     }
                 }
             }
@@ -351,20 +473,12 @@ namespace ActionEffectRange.Actions
 
         static ActionWatcher()
         {
-            unsafe
-            {
-                actionMgrPtr = (IntPtr)ActionManager.Instance();
-            }
-
-#if DEBUG
             UseActionHook ??= new Hook<UseActionDelegate>(Plugin.SigScanner.ScanText("E8 ?? ?? ?? ?? 89 9F 14 79 02 00"), UseActionDetour);
-#endif
             UseActionLocationHook ??= new Hook<UseActionLocationDelegate>(Plugin.SigScanner.ScanText("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 81 FB FB 1C 00 00"), UseActionLocationDetour);
             ReceiveActionEffectHook ??= new Hook<ReceiveActionEffectDelegate>(Plugin.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B 8D F0 03 00 00"), ReceiveActionEffectDetour);
             SendActionHook ??= new Hook<SendActionDelegate>(Plugin.SigScanner.ScanText("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? F3 0F 10 3D ?? ?? ?? ?? 48 8D 4D BF"), SendActionDetour);
 
             PluginLog.Information("ActionWatcher init:\n" +
-                $"\tactionMgrPtr @{actionMgrPtr:X}\n" +
                 $"\tUseActionLoactionHook @{UseActionLocationHook?.Address ?? IntPtr.Zero:X}\n" +
                 $"\tReceiveActionEffectHook @{ReceiveActionEffectHook?.Address ?? IntPtr.Zero:X}\n" +
                 $"\tSendActionHook @{SendActionHook?.Address ?? IntPtr.Zero:X}");
@@ -372,9 +486,7 @@ namespace ActionEffectRange.Actions
 
         public static void Enable()
         {
-#if DEBUG
             UseActionHook?.Enable();
-#endif
             UseActionLocationHook?.Enable();
             SendActionHook?.Enable();
             ReceiveActionEffectHook?.Enable();
@@ -385,9 +497,7 @@ namespace ActionEffectRange.Actions
 
         public static void Disable()
         {
-#if DEBUG
             UseActionHook?.Disable();
-#endif
             UseActionLocationHook?.Disable();
             SendActionHook?.Disable();
             ReceiveActionEffectHook?.Disable();
@@ -399,9 +509,7 @@ namespace ActionEffectRange.Actions
         public static void Dispose()
         {
             Disable();
-#if DEBUG
             UseActionHook?.Dispose();
-#endif
             UseActionLocationHook?.Dispose();
             SendActionHook?.Dispose();
             ReceiveActionEffectHook?.Dispose();

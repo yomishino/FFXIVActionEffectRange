@@ -1,49 +1,47 @@
 ﻿using ActionEffectRange.Actions.EffectRange;
 using ActionEffectRange.Drawing.Types;
+using ActionEffectRange.Drawing.Workers;
 using Dalamud.Interface;
 using Dalamud.Logging;
 using ImGuiNET;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 
 namespace ActionEffectRange.Drawing
 {
-    public static partial class EffectRangeDrawing
+    public static class EffectRangeDrawing
     {
-        private static readonly Queue<DrawData> drawData = new();
-
-        private static uint beneficialRingColour;
-        private static uint beneficialFillColour;
-        private static uint harmfulRingColour;
-        private static uint harmfulFillColour;
-
+        private static readonly List<IDrawWorker> workers = new();
+        
 
         static EffectRangeDrawing()
         {
-            RefreshColour();
+            workers.Add(new DrawWorker());
+            workers.Add(new CastingDrawWorker());
         }
 
-        public static void RefreshColour()
-        {
-            beneficialRingColour = ImGui.ColorConvertFloat4ToU32(Plugin.Config.BeneficialColour);
-            beneficialFillColour = ImGui.ColorConvertFloat4ToU32(new(
-                Plugin.Config.BeneficialColour.X, Plugin.Config.BeneficialColour.Y, 
-                Plugin.Config.BeneficialColour.Z, Plugin.Config.FillAlpha));
-            harmfulRingColour = ImGui.ColorConvertFloat4ToU32(Plugin.Config.HarmfulColour);
-            harmfulFillColour = ImGui.ColorConvertFloat4ToU32(new(
-                Plugin.Config.HarmfulColour.X, Plugin.Config.HarmfulColour.Y, 
-                Plugin.Config.HarmfulColour.Z, Plugin.Config.FillAlpha));
-        }
+        public static void RefreshConfig()
+            => workers.ForEach(worker => worker.RefreshConfig());
 
-        public static void Clear() => drawData.Clear();
+        private static void Clear()
+            => workers.ForEach(worker => worker.Clear());
+
+        public static void Reset()
+            => workers.ForEach(worker => worker.Reset());
 
         public static void OnTick()
         {
             if (!Plugin.Config.Enabled) return;
 
-            if (!Plugin.IsPlayerLoaded) drawData.Clear();
-            if (!drawData.Any()) return;
+            if (!Plugin.IsPlayerLoaded)
+            {
+                Clear();
+                return;
+            }
+
+            workers.ForEach(worker => worker.CleanupOld());
+
+            if (!HasDataToDraw()) return;
 
             ImGui.SetNextWindowSize(ImGui.GetMainViewport().Size);
             ImGuiHelpers.ForceNextWindowMainViewport();
@@ -55,13 +53,11 @@ namespace ActionEffectRange.Drawing
                 | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoInputs);
             try
             {
-                foreach (var data in drawData)
-                {
-                    if (data.ElapsedSeconds < Plugin.Config.DrawDelay) continue;
-                    // Unset the AntiAliasedFill flag so compound shapes won't have ugly lines when filled
-                    ImGui.GetWindowDrawList().Flags &= ~ImDrawListFlags.AntiAliasedFill;
-                    data.Draw(ImGui.GetWindowDrawList());
-                }
+                // Unset the AntiAliasedFill flag so
+                // compound shapes won't have ugly lines when filled
+                ImGui.GetWindowDrawList().Flags &= ~ImDrawListFlags.AntiAliasedFill;
+
+                workers.ForEach(worker => worker.Draw(ImGui.GetWindowDrawList()));
             }
             catch (System.Exception e)
             {
@@ -72,70 +68,64 @@ namespace ActionEffectRange.Drawing
                 ImGui.End();
                 ImGui.PopStyleVar();
             }
-
-            while (drawData.TryPeek(out var head) && head.ElapsedSeconds > Plugin.Config.DrawDelay + Plugin.Config.PersistSeconds) drawData.Dequeue();
         }
 
-        public static void AddEffectRangeToDraw(EffectRangeData effectRangeData, Vector3 originPos, Vector3 targetPos, float rotation)
+        public static void AddEffectRangeToDraw(uint sequence,
+            DrawTrigger trigger, EffectRangeData effectRangeData,
+            Vector3 originPos, Vector3 targetPos, float rotation)
+            => workers.ForEach(worker => 
+            { 
+                if (worker.Trigger == trigger) 
+                    worker.QueueDrawing(sequence, effectRangeData, 
+                        originPos, targetPos, rotation);
+            });
+        
+        public static DrawData? GenerateDrawData(
+            EffectRangeData effectRangeData, uint ringCol, uint fillCol,
+            Vector3 originPos, Vector3 targetPos, float rotation)
         {
-            Plugin.LogUserDebug(
-                $"AddEffectRangeToDraw => {effectRangeData}, orig={originPos}, target={targetPos}, rotation={rotation}");
-            if (!Plugin.IsPlayerLoaded) 
-            {
-                Plugin.LogUserDebug($"---EffectRangeData not added to draw: Player is not loaded");
-                return;
-            }
-
-            if (effectRangeData.IsHarmfulAction && !Plugin.Config.DrawHarmful) return;
-            if (!effectRangeData.IsHarmfulAction && !Plugin.Config.DrawBeneficial) return;
-            uint ringCol = effectRangeData.IsHarmfulAction ? harmfulRingColour : beneficialRingColour;
-            uint fillCol = effectRangeData.IsHarmfulAction ? harmfulFillColour : beneficialFillColour;
-
             switch (effectRangeData)
             {
                 case CircleAoEEffectRangeData circleData:
-                    drawData.Enqueue(new CircleAoEDrawData(
-                        targetPos, circleData.EffectRange, circleData.XAxisModifier, 
-                        ringCol, fillCol));
-                    break;
+                    return new CircleAoEDrawData(
+                        targetPos, circleData.EffectRange, circleData.XAxisModifier,
+                        ringCol, fillCol);
                 case ConeAoEEffectRangeData coneData:
-                    drawData.Enqueue(originPos == targetPos ?
-                        new FacingDirectedConeAoEDrawData(originPos,
+                    return originPos == targetPos 
+                        ? new FacingDirectedConeAoEDrawData(originPos,
                             rotation + coneData.RotationOffset,
                             coneData.EffectRange, coneData.XAxisModifier,
-                            coneData.CentralAngleCycles, ringCol, fillCol) :
-                        new TargetDirectedConeAoEDrawData(originPos, targetPos,
+                            coneData.CentralAngleCycles, ringCol, fillCol) 
+                        : new TargetDirectedConeAoEDrawData(originPos, targetPos,
                             coneData.EffectRange, coneData.XAxisModifier,
-                            coneData.CentralAngleCycles, coneData.RotationOffset, 
-                            ringCol, fillCol));
-                    break;
+                            coneData.CentralAngleCycles, coneData.RotationOffset,
+                            ringCol, fillCol);
                 case LineAoEEffectRangeData lineData:
-                    drawData.Enqueue(originPos == targetPos 
+                    return originPos == targetPos
                         ? new FacingDirectedLineAoEDrawData(
                             originPos, rotation + lineData.RotationOffset, lineData.EffectRange,
-                            lineData.XAxisModifier, false, ringCol, fillCol) 
-                        :new TargetDirectedLineAoEDrawData(
-                            originPos, targetPos, lineData.EffectRange, 
-                            lineData.XAxisModifier, false, ringCol, fillCol));
-                    break;
+                            lineData.XAxisModifier, false, ringCol, fillCol)
+                        : new TargetDirectedLineAoEDrawData(
+                            originPos, targetPos, lineData.EffectRange,
+                            lineData.XAxisModifier, false, ringCol, fillCol);
                 case DashAoEEffectRangeData dashData:
-                    drawData.Enqueue(new DashAoEDrawData(
-                        originPos, targetPos, dashData.EffectRange, 
-                        dashData.XAxisModifier, ringCol, fillCol));
-                    break;
+                    return new DashAoEDrawData(
+                        originPos, targetPos, dashData.EffectRange,
+                        dashData.XAxisModifier, ringCol, fillCol);
                 case DonutAoEEffectRangeData donutData:
-                    drawData.Enqueue(new DonutAoEDrawData(
-                        targetPos, donutData.EffectRange, 
-                        donutData.XAxisModifier, donutData.InnerRadius, 
-                        ringCol, fillCol));
-                    break;
+                    return new DonutAoEDrawData(
+                        targetPos, donutData.EffectRange,
+                        donutData.XAxisModifier, donutData.InnerRadius,
+                        ringCol, fillCol);
                 default:
                     Plugin.LogUserDebug(
                         $"---No DrawData created for Action#{effectRangeData.ActionId}: " +
                         $"created {effectRangeData.GetType().Name} from unknown AoE type");
-                    return;
+                    return null;
             };
         }
 
+        private static bool HasDataToDraw()
+            => workers.Exists(worker => worker.HasDataToDraw());
     }
 }

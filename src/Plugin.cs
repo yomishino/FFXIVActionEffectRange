@@ -63,19 +63,20 @@ namespace ActionEffectRange
                 {
                     if (value) 
                     {
-                        EffectRangeDrawing.Clear();
+                        EffectRangeDrawing.Reset();
                         ActionWatcher.Enable();
                     }
                     else
                     {
-                        EffectRangeDrawing.Clear();
+                        EffectRangeDrawing.Reset();
                         ActionWatcher.Disable();
                     }
                     _enabled = value;
                 }
             }
         }
-
+        internal static bool DrawWhenCasting;
+        
         internal static Configuration Config = null!;
         internal static bool InConfig = false;
 
@@ -90,6 +91,7 @@ namespace ActionEffectRange
 
             PluginInterface.UiBuilder.Draw += EffectRangeDrawing.OnTick;
 
+            ClientState.Logout += OnLogOut;
             ClientState.TerritoryChanged += CheckTerritory;
 
             RefreshConfig(true);
@@ -112,14 +114,25 @@ namespace ActionEffectRange
         private static void CheckTerritory(object? sender, ushort terr)
         {
             if (IsPvPZone)
+            {
                 Enabled = Config.Enabled && Config.EnabledPvP;
+                DrawWhenCasting = false;
+            }
             else
+            {
                 Enabled = Config.Enabled;
+                DrawWhenCasting = Config.DrawWhenCasting;
+            }
+        }
+
+        private static void OnLogOut(object? sender, EventArgs e)
+        {
+            EffectRangeDrawing.Reset();
         }
 
         internal static void RefreshConfig(bool reloadSavedList = false)
         {
-            EffectRangeDrawing.RefreshColour();
+            EffectRangeDrawing.RefreshConfig();
             CheckTerritory(null, ClientState.TerritoryType);
             //Enabled = Config.Enabled;
 
@@ -151,6 +164,8 @@ namespace ActionEffectRange
             CommandManager.RemoveHandler(commandToggleConfig);
             
             PluginInterface.UiBuilder.Draw -= EffectRangeDrawing.OnTick;
+
+            ClientState.Logout -= OnLogOut;
             ClientState.TerritoryChanged -= CheckTerritory;
 
             PluginInterface.UiBuilder.Draw -= ConfigUi.Draw;

@@ -6,6 +6,13 @@ namespace ActionEffectRange.UI
 {
     public static class ImGuiExt
     {
+        public static void SpacedSeparator()
+        {
+            ImGui.NewLine();
+            ImGui.Separator();
+            ImGui.NewLine();
+        }
+
         public static void MultiTextWrapped(params string[] paras)
         {
             foreach (var p in paras) ImGui.TextWrapped(p);

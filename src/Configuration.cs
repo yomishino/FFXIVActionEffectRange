@@ -39,6 +39,10 @@ namespace ActionEffectRange
         public float DrawDelay = .4f;
         public float PersistSeconds = 1;
 
+        public bool DrawWhenCasting = false;
+        public Vector4 DrawWhenCastingColour = new(1f, 1f, .5f, 1);
+        public bool DrawWhenCastingUntilCastEnd = true;
+
         public uint[] ActionBlacklist = Array.Empty<uint>();
         public AoETypeDataItem[] AoETypeList = Array.Empty<AoETypeDataItem>();
         public ConeAoEAngleDataItem[] ConeAoeAngleList = Array.Empty<ConeAoEAngleDataItem>();
