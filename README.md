@@ -5,6 +5,13 @@ A FFXIV Dalamud plugin that provides a visual cue on the effect range of the AoE
 May be used as a supplement/replacement to the actions' VFXs in showing effect range related information, 
 such as where has the action landed and how large an area it covered.
 
+**:warning: Note on Patch 6.1 update**
+
+The plugin has been updated for Patch 6.1 (with new features added).
+
+However, it has not been fully updated for new actions added in 6.1.
+Please expect incorrect drawing for some of the new actions for the moment.
+
 
 ## How to Install
 
