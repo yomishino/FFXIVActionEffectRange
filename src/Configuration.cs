@@ -48,7 +48,7 @@ namespace ActionEffectRange
         public ConeAoEAngleDataItem[] ConeAoeAngleList = Array.Empty<ConeAoEAngleDataItem>();
 
         public bool LogDebug = false;
-        public bool showSponsor = false;
+        public bool ShowSponsor = false;
 
 
         public void Save()

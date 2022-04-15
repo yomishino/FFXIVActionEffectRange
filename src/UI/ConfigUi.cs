@@ -193,8 +193,8 @@ namespace ActionEffectRange.UI
                     ImGui.TreePush();
                     ImGui.Checkbox($"[DEBUG] Log debug info to Dalamud Console", ref Plugin.Config.LogDebug);
                     ImGui.NewLine();
-                    ImGui.Checkbox("Show Sponsor/Support button", ref Plugin.Config.showSponsor);
-                    if (Plugin.Config.showSponsor)
+                    ImGui.Checkbox("Show Sponsor/Support button", ref Plugin.Config.ShowSponsor);
+                    if (Plugin.Config.ShowSponsor)
                     {
                         ImGui.Indent();
                         ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000 | 0x005E5BFF);
