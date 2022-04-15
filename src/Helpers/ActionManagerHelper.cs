@@ -8,6 +8,11 @@ namespace ActionEffectRange.Helpers
     {
         private static readonly IntPtr actionMgrPtr;
 
+        internal static IntPtr FpUseAction => 
+            (IntPtr)ActionManager.fpUseAction;
+        internal static IntPtr FpUseActionLocation => 
+            (IntPtr)ActionManager.fpUseActionLocation;
+
         public static ushort CurrentSeq => actionMgrPtr != IntPtr.Zero
             ? (ushort)Marshal.ReadInt16(actionMgrPtr + 0x110) : (ushort)0;
         public static ushort LastRecievedSeq => actionMgrPtr != IntPtr.Zero

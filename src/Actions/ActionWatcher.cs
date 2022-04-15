@@ -473,12 +473,13 @@ namespace ActionEffectRange.Actions
 
         static ActionWatcher()
         {
-            UseActionHook ??= new Hook<UseActionDelegate>(Plugin.SigScanner.ScanText("E8 ?? ?? ?? ?? 89 9F 14 79 02 00"), UseActionDetour);
-            UseActionLocationHook ??= new Hook<UseActionLocationDelegate>(Plugin.SigScanner.ScanText("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 81 FB FB 1C 00 00"), UseActionLocationDetour);
+            UseActionHook ??= new Hook<UseActionDelegate>(ActionManagerHelper.FpUseAction, UseActionDetour);
+            UseActionLocationHook ??= new Hook<UseActionLocationDelegate>(ActionManagerHelper.FpUseActionLocation, UseActionLocationDetour);
             ReceiveActionEffectHook ??= new Hook<ReceiveActionEffectDelegate>(Plugin.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B 8D F0 03 00 00"), ReceiveActionEffectDetour);
             SendActionHook ??= new Hook<SendActionDelegate>(Plugin.SigScanner.ScanText("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? F3 0F 10 3D ?? ?? ?? ?? 48 8D 4D BF"), SendActionDetour);
 
             PluginLog.Information("ActionWatcher init:\n" +
+                $"\tUseActionHook @{UseActionHook?.Address ?? IntPtr.Zero:X}\n" +
                 $"\tUseActionLoactionHook @{UseActionLocationHook?.Address ?? IntPtr.Zero:X}\n" +
                 $"\tReceiveActionEffectHook @{ReceiveActionEffectHook?.Address ?? IntPtr.Zero:X}\n" +
                 $"\tSendActionHook @{SendActionHook?.Address ?? IntPtr.Zero:X}");

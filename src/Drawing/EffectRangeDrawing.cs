@@ -117,6 +117,10 @@ namespace ActionEffectRange.Drawing
                         targetPos, donutData.EffectRange,
                         donutData.XAxisModifier, donutData.InnerRadius,
                         ringCol, fillCol);
+                case CrossAoEEffectRangeData crossData:
+                    return new CrossAoEDrawData(
+                        originPos, targetPos, crossData.EffectRange,
+                        crossData.XAxisModifier, false, ringCol, fillCol);
                 default:
                     Plugin.LogUserDebug(
                         $"---No DrawData created for Action#{effectRangeData.ActionId}: " +

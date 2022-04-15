@@ -15,7 +15,7 @@
                         // actually may be Line AoE with length adjusted to target position, not always dashing
         
         Donut = 10,
-
+        Cross = 11,
         Line2 = 12,
         Cone2 = 13,
     }
