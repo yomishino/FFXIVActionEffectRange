@@ -186,7 +186,7 @@ namespace ActionEffectRange.Actions
                 original.EffectRange, out var angle))
                 return new ConeAoEEffectRangeData(original, angle);
 
-            return original;
+            return new ConeAoEEffectRangeData(original, ConeAoEAngleMap.DefaultAngleCycles);
         }
 
         private static EffectRangeData CheckDonutAoERadiusOverriding(EffectRangeData original)
