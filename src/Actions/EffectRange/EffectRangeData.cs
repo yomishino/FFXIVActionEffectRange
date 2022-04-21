@@ -56,6 +56,9 @@ namespace ActionEffectRange.Actions.EffectRange
                 ActionAoEType.Donut
                     => new DonutAoEEffectRangeData(actionId, actionCategory, isGT, isHarmful,
                         range, effectRange, xAxisModifier, castType, isOriginal: isOriginal),
+                ActionAoEType.Cross
+                    => new CrossAoEEffectRangeData(actionId, actionCategory, isGT, isHarmful,
+                        range, effectRange, xAxisModifier, castType, isOriginal: isOriginal),
                 _ => new NonAoEEffectRangeData(actionId, actionCategory, isGT, isHarmful,
                         range, effectRange, xAxisModifier, castType, isOriginal: isOriginal)
             };

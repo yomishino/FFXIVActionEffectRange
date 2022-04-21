@@ -79,6 +79,12 @@ namespace ActionEffectRange.Actions.Data.Predefined
                         original.Range, 1, original.XAxisModifier,
                         original.CastType, isOriginal: false));
                     return updatedDataSet;
+                case 29704:     // Southern Cross (White/Black) (RDM PvP)
+                case 29705:     // Southern Cross (Black) (RDM PvP)
+                    // Seems to have a 45-degree rotation offset
+                    updatedDataSet.Add(new CrossAoEEffectRangeData(
+                        original, -System.MathF.PI / 4));
+                    return updatedDataSet;
                 default: return updatedDataSet;
             }
         }

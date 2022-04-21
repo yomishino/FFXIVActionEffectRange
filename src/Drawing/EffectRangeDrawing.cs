@@ -120,7 +120,8 @@ namespace ActionEffectRange.Drawing
                 case CrossAoEEffectRangeData crossData:
                     return new CrossAoEDrawData(
                         originPos, targetPos, crossData.EffectRange,
-                        crossData.XAxisModifier, false, ringCol, fillCol);
+                        crossData.XAxisModifier, crossData.RotationOffset, 
+                        ringCol, fillCol);
                 default:
                     Plugin.LogUserDebug(
                         $"---No DrawData created for Action#{effectRangeData.ActionId}: " +
