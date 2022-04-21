@@ -5,8 +5,8 @@
     {
         public static uint[] PredefinedList => new uint[]
         {
-            2262,   // Shukuchi
-            8812,   // Shukuchi PvP
+            2262,   // Shukuchi (NIN)
+            29513,   // Shukuchi (NIN PvP)
 
             11401,  // Loom (BLU)
 

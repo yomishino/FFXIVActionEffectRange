@@ -7,6 +7,8 @@ namespace ActionEffectRange.Actions.Data.Predefined
     {
         public static readonly ImmutableDictionary<uint, ImmutableHashSet<uint>> Dictionary = new KeyValuePair<uint, ImmutableHashSet<uint>>[]
         {
+            // PvE
+
             new(25799, new uint[]{ 25841 }.ToImmutableHashSet()),     // radiant aegis
             new(25801, new uint[]{ 25842 }.ToImmutableHashSet()),     // Searing light
 
@@ -30,6 +32,12 @@ namespace ActionEffectRange.Actions.Data.Predefined
             new(7437, new uint[]{ 7438 }.ToImmutableHashSet()),       // aetherpact -> fey union
             new(16543, new uint[]{ 16544 }.ToImmutableHashSet()),     // fey blessing
             new(16546, new uint[]{ 16547 }.ToImmutableHashSet()),     // consolation
+
+            // PvP
+
+            new(29674, new uint[] { 29677 }.ToImmutableHashSet()),  // Enkindle Bahamut -> Megaflare (SMN PvP)
+            new(29679, new uint[] { 29682 }.ToImmutableHashSet()),  // Enkindle Pheonix -> Revelation (SMN PvP)
+            new(29238, new uint[] { 29241 }.ToImmutableHashSet()),  // Consolation -> Consolation (SCH PvP)
 
         }.ToImmutableDictionary();
     }

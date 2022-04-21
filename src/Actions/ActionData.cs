@@ -20,6 +20,8 @@ namespace ActionEffectRange.Actions
         private static readonly ConeAoeAngleOverridingList coneAoeOverridingList
             = new(Plugin.Config);
 
+        private static readonly IDictionary<uint, ActionHarmfulness>
+            harmfulnessDict = HarmfulnessMap.Dictionary;
 
         internal static readonly ExcelSheet<GeneratedSheets.Action>? ActionExcelSheet
             = Plugin.DataManager.GetExcelSheet<GeneratedSheets.Action>();
@@ -157,8 +159,15 @@ namespace ActionEffectRange.Actions
             updated = CheckAoETypeOverriding(original);
             updated = CheckConeAoEAngleOverriding(updated);
             updated = CheckDonutAoERadiusOverriding(updated);
-            var updatedSet = EffectRangeCornerCases.GetUpdatedEffectDataSet(updated);
-            if (!updatedSet.Any()) updatedSet.Add(updated);
+            var updatedList = CheckAoEHarmfulnessOverriding(updated);
+            var updatedSet = new HashSet<EffectRangeData>();
+            updatedList.ForEach(item =>
+            {
+                var set = EffectRangeCornerCases.GetUpdatedEffectDataSet(item);
+                updatedSet.UnionWith(set);
+                if (set.Count == 0) updatedSet.Add(item);
+            });
+            if (updatedSet.Count == 0) updatedSet.Add(updated);
             return updatedSet;
         }
 
@@ -197,6 +206,23 @@ namespace ActionEffectRange.Actions
                 return new DonutAoEEffectRangeData(original, radius);
 
             return original;
+        }
+
+        private static List<EffectRangeData> CheckAoEHarmfulnessOverriding(
+            EffectRangeData original)
+        {
+            var updated = new List<EffectRangeData>();
+            if (harmfulnessDict.TryGetValue(original.ActionId, out var harmfulness))
+            {
+                if (harmfulness.HasFlag(ActionHarmfulness.Harmful))
+                    updated.Add(EffectRangeData.CreateChangeHarmfulness(
+                        original, true));
+                if (harmfulness.HasFlag(ActionHarmfulness.Beneficial))
+                    updated.Add(EffectRangeData.CreateChangeHarmfulness(
+                        original, false));
+            }
+            else updated.Add(original);
+            return updated;
         }
 
         #endregion

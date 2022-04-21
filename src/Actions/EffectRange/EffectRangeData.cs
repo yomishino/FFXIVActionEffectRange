@@ -66,6 +66,12 @@ namespace ActionEffectRange.Actions.EffectRange
                 actionRow.Range, actionRow.EffectRange, actionRow.XAxisModifier, 
                 actionRow.CastType, isOriginal: true);
 
+        public static EffectRangeData CreateChangeHarmfulness(
+            EffectRangeData original, bool isHarmful)
+            => Create(original.ActionId, (uint)original.Category, original.IsGTAction, 
+                isHarmful, original.Range, original.EffectRange, original.XAxisModifier, 
+                original.CastType, isOriginal: false);
+
         public override string ToString()
             => $"{GetType().Name}{{ ActionId: {ActionId}, Category: {Category}, " +
             $"IsGT: {IsGTAction}, IsHarmful: {IsHarmfulAction}, " +

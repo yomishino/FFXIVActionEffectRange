@@ -27,14 +27,6 @@ namespace ActionEffectRange.Actions.Data.Predefined
                         false, original.Range, original.EffectRange, original.XAxisModifier,
                         original.CastType, isOriginal: false));
                     return updatedDataSet;
-                case 17991:     // celestial opposition (AST PvP)
-                    updatedDataSet.Add(original);
-                    // Add also the additional heal effect range
-                    updatedDataSet.Add(new CircleAoEEffectRangeData(
-                        original.ActionId, (uint)original.Category, original.IsGTAction, 
-                        false, original.Range, original.EffectRange, original.XAxisModifier,
-                        original.CastType, isOriginal: false));
-                    return updatedDataSet;
                 case 25874:     // macrocosmos (AST) 
                     updatedDataSet.Add(original);
                     // Add also the additional heal effect range
@@ -43,9 +35,7 @@ namespace ActionEffectRange.Actions.Data.Predefined
                         false, original.Range, original.EffectRange, original.XAxisModifier,
                         original.CastType, isOriginal: false));
                     return updatedDataSet;
-
                 case 24318:     // pneuma (SGE)
-                case 27830:     // pneuma (SGE PvP)
                     // Add the additional heal effect range
                     updatedDataSet.Add(new CircleAoEEffectRangeData(
                         original.ActionId, (uint)original.Category, 
@@ -54,6 +44,41 @@ namespace ActionEffectRange.Actions.Data.Predefined
                     updatedDataSet.Add(original);
                     return updatedDataSet;
 
+                // PvP cases
+                case 29097:     // Eventide (DRK PvP)
+                    // Add the additional line effect range to the back
+                    // This would result in a "horizontal" line drawn in the centre
+                    // if users choose to make shape outline visible though
+                    updatedDataSet.Add(new LineAoEEffectRangeData(
+                        original.ActionId, (uint)original.Category, original.IsGTAction, 
+                        original.IsHarmfulAction, original.Range, original.EffectRange, 
+                        original.XAxisModifier,original.CastType, 
+                        System.MathF.PI, isOriginal: false));
+                    updatedDataSet.Add(original);
+                    return updatedDataSet;
+                case 29260:     // Pneuma (SGE PvP)
+                    // Add the additional heal effect range
+                    updatedDataSet.Add(new CircleAoEEffectRangeData(
+                        original.ActionId, (uint)original.Category,
+                        original.IsGTAction, false, 0, 20, 0, 2, isOriginal: false));
+                    // Add back the original attack effect
+                    updatedDataSet.Add(original);
+                    return updatedDataSet;
+                case 29422:     // Honing Dance (DNC PvP)
+                    // Override as Circle AoE, also providing EffectRange
+                    updatedDataSet.Add(new CircleAoEEffectRangeData(
+                        original.ActionId, (uint)original.Category,
+                        original.IsGTAction, true, 0, 5, 0, 2, isOriginal: false));
+                    return updatedDataSet;
+                case 29532:     // Hissatsu: Soten (SAM PvP)
+                    // Providing EffectRange 
+                    // EffectRange of 1 is from Excel data for the old PvP Soten skill
+                    updatedDataSet.Add(new DashAoEEffectRangeData(
+                        original.ActionId, (uint)original.Category,
+                        original.IsGTAction, original.IsHarmfulAction,
+                        original.Range, 1, original.XAxisModifier,
+                        original.CastType, isOriginal: false));
+                    return updatedDataSet;
                 default: return updatedDataSet;
             }
         }

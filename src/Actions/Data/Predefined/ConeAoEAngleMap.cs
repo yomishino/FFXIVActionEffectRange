@@ -33,11 +33,9 @@ namespace ActionEffectRange.Actions.Data.Predefined
                 GeneratePair(7418, .25f),               // Flamethrower (MCH)
                 GeneratePair(25791, 1f / 3f),           // Fan Dance IV (DNC)
 
-                GeneratePair(18899, 1f / 3f),           // glory slash (PLD pvp)
-                GeneratePair(27813, .5f),                // Grim Swathe (RPR pvp)
-                GeneratePair(27804, .5f),                // Guillotine (RPR pvp)
-                GeneratePair(27805, .5f),                // Grim Reaping (RPR pvp)
-                GeneratePair(27816, .5f),                // Lemure's Scythe (RPR pvp)
+                GeneratePair(29428, .25f),              // Fan Dance (DNC PvP)      --- idk why devteam decided to make it smaller than PvE version but nah
+                GeneratePair(29547, .5f),               // Grim Swathe (RPR PvP)
+                GeneratePair(29548, .5f),               // Lemure's Slice (RPR PvP)
 
                 // BLU up to #104
                 // Most BLU cone aoe with effect range 6 seems 90-degree, exceptions exist
