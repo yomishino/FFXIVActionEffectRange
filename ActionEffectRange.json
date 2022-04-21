@@ -12,6 +12,6 @@
   ],
   "ImageUrls": "",
   "IconUrl": "",
-  "Changelog": "Patch 6.1 update\n(Note: Please expect incorrect drawing for some of the new skills added in Patch 6.1. I'm working on fixing it.)\n\n- New option to display effect range while casting \n- Cone AoE drawing customisation",
+  "Changelog": "Fix incorrect drawing for some Patch 6.1 skills \n\n(Note: Fixing for some of the new skills is still ongoing.)",
   "DalamudApiLevel": 6
 }
