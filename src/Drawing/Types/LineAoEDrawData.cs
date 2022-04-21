@@ -1,4 +1,5 @@
 ﻿using ImGuiNET;
+using System;
 using System.Numerics;
 
 namespace ActionEffectRange.Drawing.Types
@@ -7,7 +8,7 @@ namespace ActionEffectRange.Drawing.Types
     {
         public readonly Vector3 Origin;
         public readonly Vector3 Direction;
-        //public readonly float Rotation;
+        public readonly float Rotation;
         public readonly float Length;
         public readonly float Width;
         public readonly Vector3 End;
@@ -16,16 +17,24 @@ namespace ActionEffectRange.Drawing.Types
         // Length (depth) of LineAoE seems has a small factor added to Action.EffectRange so its slightly longer: maybe 0.5 but not sure;
         // it sometimes look visually different on diffent enemies/hitbox radia.
         // The addition seems not applied to dummies on the field (only to dummies in instances in explore mode).
-        public LineAoEDrawData(Vector3 origin, Vector3 target, byte baseEffectRange, byte xAxisModifier, bool calculateY, uint ringColour, uint fillColour)
+        public LineAoEDrawData(Vector3 origin, Vector3 target, 
+            byte baseEffectRange, byte xAxisModifier, bool calculateY, 
+            float rotationOffset, uint ringColour, uint fillColour)
             : base(ringColour, fillColour)
         {
             Origin = origin;
             Direction = Vector3.Normalize(target - origin);
+            // Further rotate by offset
+            if (rotationOffset > .0001f || rotationOffset < -.0001f)
+                Direction = new(
+                    MathF.Cos(rotationOffset) * Direction.X
+                        - MathF.Sin(rotationOffset) * Direction.Z,
+                    Direction.Y,
+                    MathF.Cos(rotationOffset) * Direction.Z
+                        + MathF.Sin(rotationOffset) * Direction.X);
             if (!calculateY) Direction.Y = 0;
             Length = baseEffectRange + .5f; 
             Width = xAxisModifier;
-            //Rotation = rotation;
-            //End = new Vector3(Origin.X + Length * MathF.Sin(Rotation), Origin.Y, Origin.Z + Length * MathF.Cos(Rotation));
             End = Direction * Length + origin;
         }
 
@@ -43,11 +52,6 @@ namespace ActionEffectRange.Drawing.Types
             var p2w = Vector3.Normalize(new Vector3(Direction.Z, 0, -Direction.X)) * w2 + End;
             var p3w = Vector3.Normalize(new Vector3(-Direction.Z, 0, Direction.X)) * w2 + End;
             var p4w = Vector3.Normalize(new Vector3(-Direction.Z, 0, Direction.X)) * w2 + Origin;
-
-            //var p1w = new Vector3(Origin.X - w2 * MathF.Cos(Rotation), Origin.Y, Origin.Z + w2 * MathF.Sin(Rotation));
-            //var p2w = new Vector3(Origin.X + w2 * MathF.Cos(Rotation), Origin.Y, Origin.Z - w2 * MathF.Sin(Rotation));
-            //var p3w = new Vector3(End.X + w2 * MathF.Cos(Rotation), End.Y, End.Z - w2 * MathF.Sin(Rotation));
-            //var p4w = new Vector3(End.X - w2 * MathF.Cos(Rotation), End.Y, End.Z + w2 * MathF.Sin(Rotation));
 
             Projection.WorldToScreen(p1w, out var p1s, out var p1r);
             Projection.WorldToScreen(p2w, out var p2s, out var p2r);

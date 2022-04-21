@@ -103,11 +103,13 @@ namespace ActionEffectRange.Drawing
                 case LineAoEEffectRangeData lineData:
                     return originPos == targetPos
                         ? new FacingDirectedLineAoEDrawData(
-                            originPos, rotation + lineData.RotationOffset, lineData.EffectRange,
-                            lineData.XAxisModifier, false, ringCol, fillCol)
+                            originPos, rotation, lineData.EffectRange,
+                            lineData.XAxisModifier, lineData.RotationOffset, 
+                            ringCol, fillCol)
                         : new TargetDirectedLineAoEDrawData(
                             originPos, targetPos, lineData.EffectRange,
-                            lineData.XAxisModifier, false, ringCol, fillCol);
+                            lineData.XAxisModifier, false, 
+                            lineData.RotationOffset, ringCol, fillCol);
                 case DashAoEEffectRangeData dashData:
                     return new DashAoEDrawData(
                         originPos, targetPos, dashData.EffectRange,

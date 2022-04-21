@@ -12,9 +12,25 @@ namespace ActionEffectRange.Drawing.Types
         public readonly float Width;
 
         // No extra addition to length of the AoE which is unlike LineAoE.
-        // Seems for pvp players you can actually hit the target only if position you move to is at least (exactly) the same or go past the target's position,
-        // but dummies seem get dmg as if the AoE has some extra added (but who cares dummies! unless players are actually also like this in instances..)
-        // For width tho, different from LineAoE, it seems using Action.EffectRange for half of the width instead of using XAxisModifier as the full width?
+        // Seems for pvp players you can actually hit the target only if
+        // position you move to is at least (exactly) the same or
+        // go past the target's position, but dummies seem get dmg
+        // as if the AoE has some extra added (but who cares dummies!
+        // unless players are actually also like this in instances..)
+        // For width tho, different from LineAoE, it seems using Action.EffectRange
+        // for half of the width instead of using XAxisModifier as the full width?
+        // 
+        // Patch 6.1: for SAM's new Soten, while it makes action user
+        //  pass through the target entirely, the extra area from target's
+        //  position to action user's position seems has no effect at all?
+        //  Looks like it just do the normal effect calculation for this type 
+        //  and then makes character "warp" to the new position???
+        // 
+        // TODO: Also, idk about the correct calculation of width for new Soten,
+        //  but if we make it as having EffectRange of 1 as old Soten,
+        //  it's effectively the same width as using XAxisModifer anyway (which is 4)
+        //  Probably it is designed to be consistent? Since new Soten has EffectRange 0,
+        //  possibly also a change reflecting it being no longer a GT action.
         public DashAoEDrawData(Vector3 origin, Vector3 target, byte baseEffectRange, byte xAxisModifier, uint ringColour, uint fillColour)
         : base(ringColour, fillColour)
         {

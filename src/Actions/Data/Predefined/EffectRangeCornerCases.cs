@@ -46,15 +46,22 @@ namespace ActionEffectRange.Actions.Data.Predefined
 
                 // PvP cases
                 case 29097:     // Eventide (DRK PvP)
-                    // Add the additional line effect range to the back
+                    // Add the additional line effect range to the back;
+                    //  also halve the effect range:
+                    //  the original effect range is for front + back
                     // This would result in a "horizontal" line drawn in the centre
                     // if users choose to make shape outline visible though
                     updatedDataSet.Add(new LineAoEEffectRangeData(
-                        original.ActionId, (uint)original.Category, original.IsGTAction, 
-                        original.IsHarmfulAction, original.Range, original.EffectRange, 
+                        original.ActionId, (uint)original.Category, 
+                        original.IsGTAction, original.IsHarmfulAction, 
+                        original.Range, (byte)(original.EffectRange / 2), 
                         original.XAxisModifier,original.CastType, 
                         System.MathF.PI, isOriginal: false));
-                    updatedDataSet.Add(original);
+                    updatedDataSet.Add(new LineAoEEffectRangeData(
+                        original.ActionId, (uint)original.Category, 
+                        original.IsGTAction,original.IsHarmfulAction, 
+                        original.Range, (byte)(original.EffectRange / 2), 
+                        original.XAxisModifier, original.CastType, isOriginal: false));
                     return updatedDataSet;
                 case 29260:     // Pneuma (SGE PvP)
                     // Add the additional heal effect range
