@@ -7,7 +7,6 @@ using Dalamud.Hooking;
 using Dalamud.Logging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
@@ -453,13 +452,13 @@ namespace ActionEffectRange.Actions
             return actionReplaced;
         }
 
-        private static HashSet<EffectRangeData> CheckEffectRangeDataOverriding(
+        private static List<EffectRangeData> CheckEffectRangeDataOverriding(
             EffectRangeData originalData)
         {
-            var dataset = ActionData.CheckEffectRangeDataOverriding(originalData);
+            var updated = ActionData.CheckEffectRangeDataOverriding(originalData);
             Plugin.LogUserDebug($"---Action#{originalData.ActionId} data overriden:\n" +
-                $"{string.Join('\n', dataset.Select(data => data.ToString()))}");
-            return dataset;
+                $"{string.Join('\n', updated.ConvertAll(data => data.ToString()))}");
+            return updated;
         }
 
         #endregion

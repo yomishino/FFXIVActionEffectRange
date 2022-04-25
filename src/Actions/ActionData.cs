@@ -3,10 +3,10 @@ using ActionEffectRange.Actions.Data.Predefined;
 using ActionEffectRange.Actions.Data.Template;
 using ActionEffectRange.Actions.EffectRange;
 using ActionEffectRange.Actions.Enums;
+using ActionEffectRange.Utils;
 using Lumina.Excel;
 using GeneratedSheets = Lumina.Excel.GeneratedSheets;
 using System.Collections.Generic;
-using System.Linq;
 
 
 namespace ActionEffectRange.Actions
@@ -19,9 +19,6 @@ namespace ActionEffectRange.Actions
             = new(Plugin.Config);
         private static readonly ConeAoeAngleOverridingList coneAoeOverridingList
             = new(Plugin.Config);
-
-        private static readonly IDictionary<uint, ActionHarmfulness>
-            harmfulnessDict = HarmfulnessMap.Dictionary;
 
         internal static readonly ExcelSheet<GeneratedSheets.Action>? ActionExcelSheet
             = Plugin.DataManager.GetExcelSheet<GeneratedSheets.Action>();
@@ -125,52 +122,74 @@ namespace ActionEffectRange.Actions
             => actionBlacklist.Contains(actionId);
 
         public static bool CheckPetAction(EffectRangeData ownerActionData,
-            out HashSet<EffectRangeData>? petActionEffectRangeDataSet)
+            out List<EffectRangeData>? petActionEffectRangeDataSet)
         {
             petActionEffectRangeDataSet = null;
-            if (!PetActionMap.Dictionary.TryGetValue(ownerActionData.ActionId, out var petActionIds)
+            if (!PetActionMap.Dictionary.TryGetValue(
+                    ownerActionData.ActionId, out var petActionIds)
                 || petActionIds == null) return false;
-            petActionEffectRangeDataSet = petActionIds
-                .Select(id => GetActionEffectRangeDataRaw(id))
-                .Where(data => data != null && data.EffectRange > 0)
-                .SelectMany(data => CheckEffectRangeDataOverriding(data))
-                .ToHashSet();
-            return petActionEffectRangeDataSet.Any();
+            petActionEffectRangeDataSet = petActionIds.FlatMap(id =>
+            {
+                var data = GetActionEffectRangeDataRaw(id);
+                if (data != null && data.EffectRange > 0)
+                    return CheckEffectRangeDataOverriding(data);
+                return null;
+            });
+            return petActionEffectRangeDataSet.Count > 0;
         }
 
         public static bool CheckPetLikeAction(EffectRangeData ownerActionData,
-            out HashSet<EffectRangeData>? petLikeActionEffectRangeDataSet)
+            out List<EffectRangeData>? petLikeActionEffectRangeDataSet)
         {
             petLikeActionEffectRangeDataSet = null;
             if (!PetLikeActionMap.Dictionary.TryGetValue(ownerActionData.ActionId, out var petActionIds)
                 || petActionIds == null) return false;
-            petLikeActionEffectRangeDataSet = petActionIds
-                .Select(id => GetActionEffectRangeDataRaw(id))
-                .Where(data => data != null && data.EffectRange > 0)
-                .SelectMany(data => CheckEffectRangeDataOverriding(data))
-                .ToHashSet();
-            return petLikeActionEffectRangeDataSet.Any();
-        }
-
-        public static HashSet<EffectRangeData> CheckEffectRangeDataOverriding(EffectRangeData? original)
-        {
-            if (original == null) return new();
-            EffectRangeData updated;
-            updated = CheckAoETypeOverriding(original);
-            updated = CheckConeAoEAngleOverriding(updated);
-            updated = CheckDonutAoERadiusOverriding(updated);
-            var updatedList = CheckAoEHarmfulnessOverriding(updated);
-            var updatedSet = new HashSet<EffectRangeData>();
-            updatedList.ForEach(item =>
+            petLikeActionEffectRangeDataSet = petActionIds.FlatMap(id =>
             {
-                var set = EffectRangeCornerCases.GetUpdatedEffectDataSet(item);
-                updatedSet.UnionWith(set);
-                if (set.Count == 0) updatedSet.Add(item);
+                var data = GetActionEffectRangeDataRaw(id);
+                if (data != null && data.EffectRange > 0)
+                    return CheckEffectRangeDataOverriding(data);
+                return null;
             });
-            if (updatedSet.Count == 0) updatedSet.Add(updated);
-            return updatedSet;
+            return petLikeActionEffectRangeDataSet.Count > 0;
         }
 
+        public static List<EffectRangeData> CheckEffectRangeDataOverriding(
+            EffectRangeData? original)
+        {
+            List<EffectRangeData> updated;
+            if (original == null) return new();
+
+            updated = CheckEffectRangeDataDirectMap(original);
+
+            updated = updated.ConvertAll(
+                data => CheckAoETypeOverriding(data));
+            updated = updated.ConvertAll(
+                data => CheckConeAoEAngleOverriding(data));
+            updated = updated.ConvertAll(
+                data => CheckDonutAoERadiusOverriding(data));
+            
+            updated = updated.FlatMap(
+                data => CheckAoEHarmfulnessOverriding(data));
+
+            updated.FlatMap(
+                data => EffectRangeCornerCases.GetUpdatedEffectDataList(data));
+
+            return updated;
+        }
+
+        private static List<EffectRangeData> CheckEffectRangeDataDirectMap(
+            EffectRangeData original)
+        {
+            var list = new List<EffectRangeData>();
+            if (DirectMap.Dictionary.TryGetValue(original.ActionId, out var mapped))
+                list.AddAllMappedNotNull(mapped,
+                    id => GetActionEffectRangeDataRaw(id));
+            else
+                list.Add(original);
+            return list;
+        }
+            
         private static EffectRangeData CheckAoETypeOverriding(EffectRangeData original)
         {
             if (aoeTypeOverridingList.TryGet(original.ActionId, out var data)
@@ -200,8 +219,6 @@ namespace ActionEffectRange.Actions
 
         private static EffectRangeData CheckDonutAoERadiusOverriding(EffectRangeData original)
         {
-            // TODO: check user overriding, return if any
-
             if (DonutAoERadiusMap.Predefined.TryGetValue(original.ActionId, out var radius))
                 return new DonutAoEEffectRangeData(original, radius);
 
@@ -212,7 +229,8 @@ namespace ActionEffectRange.Actions
             EffectRangeData original)
         {
             var updated = new List<EffectRangeData>();
-            if (harmfulnessDict.TryGetValue(original.ActionId, out var harmfulness))
+            if (HarmfulnessMap.Dictionary.TryGetValue(
+                original.ActionId, out var harmfulness))
             {
                 if (harmfulness.HasFlag(ActionHarmfulness.Harmful))
                     updated.Add(EffectRangeData.CreateChangeHarmfulness(
