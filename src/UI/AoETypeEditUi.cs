@@ -3,7 +3,7 @@ using ActionEffectRange.Actions.Data.Template;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using ImGuiNET;
-using System.Linq;
+using System;
 using System.Numerics;
 
 namespace ActionEffectRange.UI
@@ -14,10 +14,11 @@ namespace ActionEffectRange.UI
         private int selectedHarmfulness = 0;
 
         private static readonly string[] aoeTypeSelectionsDisplayed
-            = ActionDataInterfacing.AoETypeSelections
-                .Select(ActionDataInterfacing.GetAoETypeLabel).ToArray();
+            = Array.ConvertAll(
+                ActionDataInterfacing.AoETypeSelections, t => $"{t}");
         private static readonly string[] harmfulnessSelectionsDisplayed
-            = new string[] { "Harmful", "Beneficial" }; // selected..==0 <=> isHarmful==True
+            = Array.ConvertAll(
+                ActionDataInterfacing.ActionHarmfulnessesSelections, t => $"{t}");
 
         protected override Vector2 InitialUiSize => new(500, 400);
         protected override string UiName => "AoE Types";
@@ -36,7 +37,7 @@ namespace ActionEffectRange.UI
             model.AddDataColumn("AoE Type", ImGuiTableColumnFlags.WidthFixed,
                 false, 0, d => ActionDataInterfacing.GetAoETypeLabel(d.CastType));
             model.AddDataColumn("Harmful/\nBeneficial", ImGuiTableColumnFlags.WidthFixed,
-                false, 0, d => d.IsHarmful ? "Harmful" : "Beneficial");
+                false, 0, d => $"{d.Harmfulness}");
             DataTableViewModel = model;
         }
 
@@ -77,7 +78,7 @@ namespace ActionEffectRange.UI
                 {
                     ActionData.AddToAoETypeList(selectedMatchedActionRow.RowId,
                         (byte)ActionDataInterfacing.AoETypeSelections[selectedAoEType],
-                        selectedHarmfulness == 0);
+                        ActionDataInterfacing.ActionHarmfulnessesSelections[selectedHarmfulness]);
                     ClearEditInput();
                 }
                 ImGui.SameLine();

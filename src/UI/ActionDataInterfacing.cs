@@ -56,6 +56,9 @@ namespace ActionEffectRange.UI
                 ActionAoEType.GT
             };
 
+        public static ActionHarmfulness[] ActionHarmfulnessesSelections
+            => Enum.GetValues<ActionHarmfulness>();
+
         public static float DegToCycle(float deg) => deg / 360;
         
         public static float CycleToDeg(float cycle) => cycle * 360;

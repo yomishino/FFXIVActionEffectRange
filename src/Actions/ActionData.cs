@@ -47,8 +47,16 @@ namespace ActionEffectRange.Actions
         // From observation, not sure.
         // But grounded attacking AoE (salted earth, doton, the removed ShadowFlare etc.) are all 2,
         // Celetial Opposition(pve) is 1 (probably a legacy design where it used to stun enemies?).
-        public static bool IsHarmfulAction(GeneratedSheets.Action actionRow)
-            => actionRow.Unknown46 == 1;
+        public static ActionHarmfulness GetActionHarmfulness(
+            GeneratedSheets.Action actionRow)
+            => actionRow.Unknown46 == 1 
+            ? ActionHarmfulness.Harmful : ActionHarmfulness.Beneficial;
+
+        public static bool IsHarmfulAction(EffectRangeData data)
+            => data.Harmfulness.HasFlag(ActionHarmfulness.Harmful);
+
+        public static bool IsBeneficialAction(EffectRangeData data)
+            => data.Harmfulness.HasFlag(ActionHarmfulness.Beneficial);
 
         public static ushort GetRecast100ms(GeneratedSheets.Action actionRow)
             => actionRow.Recast100ms;
@@ -94,8 +102,8 @@ namespace ActionEffectRange.Actions
             => actionBlacklist.CopyCustomised();
 
         public static bool AddToAoETypeList(
-            uint actionId, byte castType, bool isHarmful)
-            => aoeTypeOverridingList.Add(new(actionId, castType, isHarmful));
+            uint actionId, byte castType, ActionHarmfulness harmfulness)
+            => aoeTypeOverridingList.Add(new(actionId, castType, harmfulness));
 
         public static bool RemoveFromAoETypeList(uint actionId)
             => aoeTypeOverridingList.Remove(actionId);
@@ -196,7 +204,7 @@ namespace ActionEffectRange.Actions
                 && data != null)
                 return EffectRangeData.Create(
                     original.ActionId, (uint)original.Category, original.IsGTAction,
-                    data.IsHarmful, original.Range, original.EffectRange,
+                    data.Harmfulness, original.Range, original.EffectRange,
                     original.XAxisModifier, data.CastType, isOriginal: false);
             return original;
         }
@@ -231,14 +239,8 @@ namespace ActionEffectRange.Actions
             var updated = new List<EffectRangeData>();
             if (HarmfulnessMap.Dictionary.TryGetValue(
                 original.ActionId, out var harmfulness))
-            {
-                if (harmfulness.HasFlag(ActionHarmfulness.Harmful))
-                    updated.Add(EffectRangeData.CreateChangeHarmfulness(
-                        original, true));
-                if (harmfulness.HasFlag(ActionHarmfulness.Beneficial))
-                    updated.Add(EffectRangeData.CreateChangeHarmfulness(
-                        original, false));
-            }
+                updated.Add(EffectRangeData.CreateChangeHarmfulness(
+                    original, harmfulness));
             else updated.Add(original);
             return updated;
         }

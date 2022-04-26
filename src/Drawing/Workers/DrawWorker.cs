@@ -1,4 +1,5 @@
 ﻿using ActionEffectRange.Actions.EffectRange;
+using ActionEffectRange.Actions.Enums;
 using ImGuiNET;
 using System.Collections.Generic;
 using System.Numerics;
@@ -53,17 +54,23 @@ namespace ActionEffectRange.Drawing.Workers
                 $"{GetType().Name}.QueueDrawing => " +
                 $"{effectRangeData}, orig={originPos}, target={targetPos}, rotation={rotation}");
 
-            if (effectRangeData.IsHarmfulAction && !Plugin.Config.DrawHarmful) return;
-            if (!effectRangeData.IsHarmfulAction && !Plugin.Config.DrawBeneficial) return;
-            uint ringCol = effectRangeData.IsHarmfulAction
-                ? harmfulRingColour : beneficialRingColour;
-            uint fillCol = effectRangeData.IsHarmfulAction
-                ? harmfulFillColour : beneficialFillColour;
+            if (effectRangeData.Harmfulness.HasFlag(ActionHarmfulness.Harmful)
+                && Plugin.Config.DrawHarmful)
+            {
+                var drawData = EffectRangeDrawing.GenerateDrawData(
+                    effectRangeData, harmfulRingColour, harmfulFillColour,
+                    originPos, targetPos, rotation);
+                if (drawData != null) drawDataQueue.Enqueue(drawData);
+            }
 
-            var drawData = EffectRangeDrawing.GenerateDrawData(
-                effectRangeData, ringCol, fillCol, 
-                originPos, targetPos, rotation);
-            if (drawData != null) drawDataQueue.Enqueue(drawData);
+            if (effectRangeData.Harmfulness.HasFlag(ActionHarmfulness.Beneficial)
+                && Plugin.Config.DrawBeneficial)
+            {
+                var drawData = EffectRangeDrawing.GenerateDrawData(
+                    effectRangeData, beneficialRingColour, beneficialFillColour,
+                    originPos, targetPos, rotation);
+                if (drawData != null) drawDataQueue.Enqueue(drawData);
+            }
         }
 
         public void RefreshConfig()

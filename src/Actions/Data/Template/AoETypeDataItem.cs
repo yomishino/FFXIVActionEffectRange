@@ -1,16 +1,19 @@
-﻿namespace ActionEffectRange.Actions.Data.Template
+﻿using ActionEffectRange.Actions.Enums;
+
+namespace ActionEffectRange.Actions.Data.Template
 {
     public class AoETypeDataItem : IDataItem
     {
         public uint ActionId { get; }
         public byte CastType { get; }
-        public bool IsHarmful { get; }
+        public ActionHarmfulness Harmfulness { get; }
 
-        public AoETypeDataItem(uint actionId, byte castType, bool isHarmful)
+        public AoETypeDataItem(
+            uint actionId, byte castType, ActionHarmfulness harmfulness)
         {
             ActionId = actionId;
             CastType = castType;
-            IsHarmful = isHarmful;
+            Harmfulness = harmfulness;
         }
     }
 }

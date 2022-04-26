@@ -52,7 +52,7 @@ namespace ActionEffectRange.Actions
             foreach (var data in overridenDataSet)
             {
                 if (!ShouldDrawForEffectRange(data)) continue;
-                if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
+                if (!ShouldDrawForHarmfulness(data)) continue; 
 
                 if (data.Range == 0)
                     recordedActionSequence[sequence].Add(new(data, 
@@ -99,9 +99,7 @@ namespace ActionEffectRange.Actions
             foreach (var data in overridenDataSet)
             {
                 if (!data.IsGTAction || !ShouldDrawForEffectRange(data)) continue;
-                if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful
-                    || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial)
-                    continue;
+                if (!ShouldDrawForHarmfulness(data)) continue;
                 // Will use location from ReceiveActionEffect for target position later
                 recordedActionSequence[seq].Add(new(data,
                     Plugin.ClientState.LocalPlayer!.Position, new(),
@@ -178,9 +176,7 @@ namespace ActionEffectRange.Actions
             foreach (var data in overridenDataSet)
             {
                 if (!ShouldDrawForEffectRange(data)) continue;
-                
-                if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful 
-                    || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
+                if (!ShouldDrawForHarmfulness(data)) continue;
                 if (data.Range == 0)
                     EffectRangeDrawing.AddEffectRangeToDraw(
                         ActionManagerHelper.CurrentSeq, DrawTrigger.Casting,
@@ -312,6 +308,10 @@ namespace ActionEffectRange.Actions
                 || Plugin.Config.LargeDrawOpt != 1 
                 || data.EffectRange < Plugin.Config.LargeThreshold);
 
+        private static bool ShouldDrawForHarmfulness(EffectRangeData data)
+            => ActionData.IsHarmfulAction(data) && Plugin.Config.DrawHarmful
+            || ActionData.IsBeneficialAction(data) && Plugin.Config.DrawBeneficial;
+
 
         #region Send Helpers
 
@@ -390,8 +390,7 @@ namespace ActionEffectRange.Actions
                     {
                         if (data == null) continue;
                         if (!ShouldDrawForEffectRange(data)) continue;
-                        if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful
-                            || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
+                        if (!ShouldDrawForHarmfulness(data)) continue;
                         if (data.Range == 0)
                             seqInfos.Add(new(data,
                                 pet.Position, pet.Position, pet.Rotation, true));
@@ -433,8 +432,7 @@ namespace ActionEffectRange.Actions
                     {
                         if (data == null) continue;
                         if (!ShouldDrawForEffectRange(data)) continue;
-                        if (data.IsHarmfulAction && !Plugin.Config.DrawHarmful
-                            || !data.IsHarmfulAction && !Plugin.Config.DrawBeneficial) continue;
+                        if (!ShouldDrawForHarmfulness(data)) continue;
                         if (data.Range == 0)
                             seqInfos.Add(new(data,
                                 pet.Position, pet.Position, pet.Rotation, true));
