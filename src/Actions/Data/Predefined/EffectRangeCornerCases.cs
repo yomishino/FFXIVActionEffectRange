@@ -73,7 +73,9 @@ namespace ActionEffectRange.Actions.Data.Predefined
                     updated.Add(new CrossAoEEffectRangeData(
                         original, -System.MathF.PI / 4));
                     return updated;
-                default: return updated;
+                default:
+                    updated.Add(original);
+                    return updated;
             }
         }
     }
