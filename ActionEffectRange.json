@@ -12,6 +12,6 @@
   ],
   "ImageUrls": "",
   "IconUrl": "",
-  "Changelog": "Patch 6.11 Update",
+  "Changelog": "Fixed a bug where some actions with multiple areas of effects such as Pneuma would have only one AoE shown regardless of configurations",
   "DalamudApiLevel": 6
 }

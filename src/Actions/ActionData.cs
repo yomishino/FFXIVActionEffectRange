@@ -180,7 +180,7 @@ namespace ActionEffectRange.Actions
             updated = updated.FlatMap(
                 data => CheckAoEHarmfulnessOverriding(data));
 
-            updated.FlatMap(
+            updated = updated.FlatMap(
                 data => EffectRangeCornerCases.GetUpdatedEffectDataList(data));
 
             return updated;
