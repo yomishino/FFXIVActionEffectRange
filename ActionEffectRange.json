@@ -12,6 +12,6 @@
   ],
   "ImageUrls": "",
   "IconUrl": "",
-  "Changelog": "Fixed a bug causing AoEs not shown",
-  "DalamudApiLevel": 6
+  "Changelog": "Patch 6.2 update",
+  "DalamudApiLevel": 7
 }
