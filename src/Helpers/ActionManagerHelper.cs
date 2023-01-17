@@ -9,9 +9,9 @@ namespace ActionEffectRange.Helpers
         private static readonly IntPtr actionMgrPtr;
 
         internal static IntPtr FpUseAction => 
-            (IntPtr)ActionManager.fpUseAction;
+            (IntPtr)ActionManager.MemberFunctionPointers.UseAction;
         internal static IntPtr FpUseActionLocation => 
-            (IntPtr)ActionManager.fpUseActionLocation;
+            (IntPtr)ActionManager.MemberFunctionPointers.UseActionLocation;
 
         public static ushort CurrentSeq => actionMgrPtr != IntPtr.Zero
             ? (ushort)Marshal.ReadInt16(actionMgrPtr + 0x110) : (ushort)0;

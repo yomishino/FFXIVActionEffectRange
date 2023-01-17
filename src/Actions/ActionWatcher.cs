@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using FVector3 = FFXIVClientStructs.FFXIV.Common.Math.Vector3;
 
 namespace ActionEffectRange.Actions
 {
@@ -77,7 +78,7 @@ namespace ActionEffectRange.Actions
 #if DEBUG
             PluginLog.Debug($"** UseActionLocation: actionType={actionType}, " +
                 $"actionId={actionId}, targetId={targetObjectId:X}, " +
-                $"loc={(Vector3)Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(location)} " +
+                $"loc={(Vector3)Marshal.PtrToStructure<FVector3>(location)} " +
                 $"param={param}; ret={ret}");
 #endif
             if (ret == 0 || !Plugin.IsPlayerLoaded || !Plugin.Config.DrawGT
@@ -206,7 +207,7 @@ namespace ActionEffectRange.Actions
             ReceiveActionEffectHook!.Original(sourceObjectId, sourceActor, position, effectHeader, effectArray, effectTrail);
 #if DEBUG
             PluginLog.Debug($"** ReceiveActionEffect: src={sourceObjectId:X}, " +
-                $"pos={(Vector3)Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position)}; " +
+                $"pos={(Vector3)Marshal.PtrToStructure<FVector3>(position)}; " +
                 $"AcMgr: CurrentSeq={ActionManagerHelper.CurrentSeq}, " +
                 $"LastRecSeq={ActionManagerHelper.LastRecievedSeq}");
 #endif
@@ -239,7 +240,7 @@ namespace ActionEffectRange.Actions
                             ActionManagerHelper.CurrentSeq, DrawTrigger.Used,
                             info.EffectRangeData, info.OriginPosition,
                             info.EffectRangeData.IsGTAction 
-                                ? Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position) 
+                                ? Marshal.PtrToStructure<FVector3>(position) 
                                 : info.TargetPosition,
                             info.ActorRotation);
                     }
@@ -255,7 +256,7 @@ namespace ActionEffectRange.Actions
                             ActionManagerHelper.CurrentSeq, DrawTrigger.Used,
                             info.EffectRangeData, info.OriginPosition,
                             info.EffectRangeData.IsGTAction 
-                                ? Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position) 
+                                ? Marshal.PtrToStructure<FVector3>(position) 
                                 : info.TargetPosition,
                             info.ActorRotation);
                     }
@@ -272,7 +273,7 @@ namespace ActionEffectRange.Actions
                             ActionManagerHelper.CurrentSeq, DrawTrigger.Used,
                         info.EffectRangeData, info.OriginPosition,
                             info.EffectRangeData.IsGTAction 
-                                ? Marshal.PtrToStructure<FFXIVClientStructs.FFXIV.Client.Graphics.Vector3>(position) 
+                                ? Marshal.PtrToStructure<FVector3>(position) 
                                 : info.TargetPosition,
                             info.ActorRotation);
                 }

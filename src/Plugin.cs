@@ -17,28 +17,28 @@ namespace ActionEffectRange
     public class Plugin : IDalamudPlugin
     {
         [PluginService]
-        [RequiredVersion("1.0")]
+        //[RequiredVersion("1.0")]
         internal static DalamudPluginInterface PluginInterface { get; private set; } = null!;
         [PluginService]
-        [RequiredVersion("1.0")]
+        //[RequiredVersion("1.0")]
         internal static CommandManager CommandManager { get; private set; } = null!;
         [PluginService]
-        [RequiredVersion("1.0")]
+        //[RequiredVersion("1.0")]
         internal static DataManager DataManager { get; private set; } = null!;
         [PluginService]
-        [RequiredVersion("1.0")]
+        //[RequiredVersion("1.0")]
         internal static SigScanner SigScanner { get; private set; } = null!;
         [PluginService]
-        [RequiredVersion("1.0")]
+        //[RequiredVersion("1.0")]
         internal static Framework Framework { get; private set; } = null!;
         [PluginService]
-        [RequiredVersion("1.0")]
+        //[RequiredVersion("1.0")]
         internal static ClientState ClientState { get; private set; } = null!;
         [PluginService]
-        [RequiredVersion("1.0")]
+        //[RequiredVersion("1.0")]
         internal static ObjectTable ObejctTable { get; private set; } = null!;
         [PluginService]
-        [RequiredVersion("1.0")]
+        //[RequiredVersion("1.0")]
         internal static BuddyList BuddyList { get; private set; } = null!;
         
 
