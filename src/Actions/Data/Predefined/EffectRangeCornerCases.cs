@@ -22,7 +22,13 @@ namespace ActionEffectRange.Actions.Data.Predefined
                     // Add back the original attack effect
                     updated.Add(original);
                     return updated;
-
+                case 25862:     // liturgy of the bell (placing) (WHM)
+                    // Use the heal effect range
+                    updated.Add(new CircleAoEEffectRangeData(
+                        original.ActionId, (uint)original.Category,
+                        original.IsGTAction, original.Harmfulness,
+                        0, 20, 0, original.CastType, false));
+                    return updated;
                 // PvP cases
                 case 29097:     // Eventide (DRK PvP)
                     // Add the additional line effect range to the back;

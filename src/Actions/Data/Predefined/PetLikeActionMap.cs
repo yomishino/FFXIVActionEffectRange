@@ -12,6 +12,8 @@ namespace ActionEffectRange.Actions.Data.Predefined
             
             new(8324, new uint[]{ 7440, 7441 }.ToImmutableHashSet()),   // stellar detonation (player); stellar burst, stellar explosion (pet) (<- earthly star) (AST)
 
+            new(28509, new uint[]{ 25863, 25864 }.ToImmutableHashSet())     // liturgy of the bell (consuming) (WHM)
+
         }.ToImmutableDictionary();
     }
 }

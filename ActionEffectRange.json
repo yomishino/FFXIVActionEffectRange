@@ -9,6 +9,6 @@
   ],
   "ImageUrls": "",
   "IconUrl": "",
-  "Changelog": "Minor performance update",
+  "Changelog": "Fix effect range: #25862 Liturgy of the Bell",
   "DalamudApiLevel": 8
 }
