@@ -17,16 +17,22 @@ Once added, look for the plugin "ActionEffectRange" in Plugin Installer's availa
 
 ## Disclaimer
 
-1. Because the visual cues are drawn on an overlay without any current context/knowledge about the in-game geographical features etc.,
+1. Because the visuals are drawn on an overlay without any current context/knowledge about the in-game geographical features etc.,
    it can sometimes look distorted or "hovered in the air" depending on the terrain and/or camera angle.
 
-2. Please expect small errors in calculation. Apart from that, there may also be mistakes. 
+2. Please expect errors in calculation. 
+   There are minor ones due to network latency that are not possible to fix.
+   For other errors, please feel free to open issues to report them.
+
+3. Some data (such as Cone AoE angles) are not found in the client (as far as I know). 
+   For these, I have to find out by myself, but I am unable to guarantee when this could be done 
+   after each game update when new actions or changes to existing actions are introduced 
+   (especially since I do not have much time to work on the plugin or even for the game itself now).
+   So any help is welcome and appreciated!
 
 
 ## Known Issues
 
-- Not showing effect range for several AoE skills that are automatically triggered after set time
-
-- Dancer's "Curing Waltz": Not showing effect range for additional effect (AoE heal around partner)
-
-- Dark Knight's "Salt and Darkness": Not showing effect range when used
+- Dancer's "Curing Waltz" (PvE #16015, PvP #29429): Not showing effect range for additional effect (AoE heal around partner)
+- Ninja's "Hollow Nozuchi" (#25776): Not showing effect range on Doton area
+- Reaper's "Arcane Crest" (#24404): Not showing effect range when the barrier effect is triggered
