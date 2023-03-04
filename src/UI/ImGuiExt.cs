@@ -25,7 +25,8 @@ namespace ActionEffectRange.UI
             ImGui.TextWrapped(text);
         }
 
-        public static void BulletTextWrappedWithHelpMarker(string text, string helpText)
+        public static void BulletTextWrappedWithHelpMarker(
+            string text, string helpText)
         {
             ImGui.Bullet();
             ImGui.SameLine();
@@ -42,7 +43,8 @@ namespace ActionEffectRange.UI
             return ret;
         }
 
-        public static bool IconButton(int id, FontAwesomeIcon icon, string? tooltip = null)
+        public static bool IconButton(int id, FontAwesomeIcon icon, 
+            string? tooltip = null)
         {
             var ret = ImGuiComponents.IconButton(id, icon);
             SetTooltipIfHovered(tooltip);
@@ -50,7 +52,8 @@ namespace ActionEffectRange.UI
         }
 
 
-        public static void CheckboxWithTooltip(string label, ref bool v, string? tooltip)
+        public static void CheckboxWithTooltip(string label, 
+            ref bool v, string? tooltip)
         {
             ImGui.Checkbox(label, ref v);
             SetTooltipIfHovered(tooltip);
@@ -70,8 +73,8 @@ namespace ActionEffectRange.UI
             if (v > max) v = max;
         }
 
-        public static void DragIntWithTooltip(string label, ref int v, int spd, int min, int max, 
-            float itemWidth, string? tooltip)
+        public static void DragIntWithTooltip(string label, ref int v, 
+            int spd, int min, int max, float itemWidth, string? tooltip)
         {
             ImGui.Text(label);
             SetTooltipIfHovered(tooltip);

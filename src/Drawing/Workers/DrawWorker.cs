@@ -2,7 +2,6 @@
 using ActionEffectRange.Actions.Enums;
 using ImGuiNET;
 using System.Collections.Generic;
-using System.Numerics;
 
 namespace ActionEffectRange.Drawing.Workers
 {
@@ -30,8 +29,7 @@ namespace ActionEffectRange.Drawing.Workers
         public void CleanupOld()
         {
             while (drawDataQueue.TryPeek(out var head)
-                && head.ElapsedSeconds >
-                    Plugin.Config.DrawDelay + Plugin.Config.PersistSeconds)
+                && head.ElapsedSeconds > Config.DrawDelay + Config.PersistSeconds)
                 drawDataQueue.Dequeue();
         }
 
@@ -39,7 +37,7 @@ namespace ActionEffectRange.Drawing.Workers
         {
             foreach (var data in drawDataQueue)
             {
-                if (data.ElapsedSeconds < Plugin.Config.DrawDelay) continue;
+                if (data.ElapsedSeconds < Config.DrawDelay) continue;
                     data.Draw(ImGui.GetWindowDrawList());
             }
         }
@@ -49,13 +47,12 @@ namespace ActionEffectRange.Drawing.Workers
         public void QueueDrawing(uint sequence, EffectRangeData effectRangeData, 
             Vector3 originPos, Vector3 targetPos, float rotation)
         {
-            if (!Plugin.IsPlayerLoaded) return;
-            Plugin.LogUserDebug(
-                $"{GetType().Name}.QueueDrawing => " +
+            if (!IsPlayerLoaded) return;
+            LogUserDebug($"{GetType().Name}.QueueDrawing => " +
                 $"{effectRangeData}, orig={originPos}, target={targetPos}, rotation={rotation}");
 
             if (effectRangeData.Harmfulness.HasFlag(ActionHarmfulness.Harmful)
-                && Plugin.Config.DrawHarmful)
+                && Config.DrawHarmful)
             {
                 var drawData = EffectRangeDrawing.GenerateDrawData(
                     effectRangeData, harmfulRingColour, harmfulFillColour,
@@ -64,7 +61,7 @@ namespace ActionEffectRange.Drawing.Workers
             }
 
             if (effectRangeData.Harmfulness.HasFlag(ActionHarmfulness.Beneficial)
-                && Plugin.Config.DrawBeneficial)
+                && Config.DrawBeneficial)
             {
                 var drawData = EffectRangeDrawing.GenerateDrawData(
                     effectRangeData, beneficialRingColour, beneficialFillColour,
@@ -76,15 +73,15 @@ namespace ActionEffectRange.Drawing.Workers
         public void RefreshConfig()
         {
             beneficialRingColour = ImGui.ColorConvertFloat4ToU32(
-                Plugin.Config.BeneficialColour);
+                Config.BeneficialColour);
             beneficialFillColour = ImGui.ColorConvertFloat4ToU32(new(
-                Plugin.Config.BeneficialColour.X, Plugin.Config.BeneficialColour.Y,
-                Plugin.Config.BeneficialColour.Z, Plugin.Config.FillAlpha));
+                Config.BeneficialColour.X, Config.BeneficialColour.Y,
+                Config.BeneficialColour.Z, Config.FillAlpha));
             harmfulRingColour = ImGui.ColorConvertFloat4ToU32(
-                Plugin.Config.HarmfulColour);
+                Config.HarmfulColour);
             harmfulFillColour = ImGui.ColorConvertFloat4ToU32(new(
-                Plugin.Config.HarmfulColour.X, Plugin.Config.HarmfulColour.Y,
-                Plugin.Config.HarmfulColour.Z, Plugin.Config.FillAlpha));
+                Config.HarmfulColour.X, Config.HarmfulColour.Y,
+                Config.HarmfulColour.Z, Config.FillAlpha));
         }
 
         public void Reset() => Clear();

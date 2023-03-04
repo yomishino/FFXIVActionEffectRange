@@ -1,6 +1,4 @@
 ﻿using ImGuiNET;
-using System;
-using System.Numerics;
 
 namespace ActionEffectRange.Drawing.Types
 {
@@ -9,7 +7,8 @@ namespace ActionEffectRange.Drawing.Types
         public readonly Vector3 Centre;
         public readonly int Radius;
 
-        public CircleAoEDrawData(Vector3 centre, byte baseEffectRange, byte xAxisModifier, uint ringColour, uint fillColour)
+        public CircleAoEDrawData(Vector3 centre, byte baseEffectRange, 
+            byte xAxisModifier, uint ringColour, uint fillColour)
             : base(ringColour, fillColour)
         {
             Centre = centre;
@@ -18,11 +17,12 @@ namespace ActionEffectRange.Drawing.Types
 
         public override void Draw(ImDrawListPtr drawList)
         {
-            if (Plugin.Config.LargeDrawOpt == 1 && Radius >= Plugin.Config.LargeThreshold) return;  // no draw large
+            if (Config.LargeDrawOpt == 1 && Radius >= Config.LargeThreshold) 
+                return;  // no draw large
 
-            var points = new Vector2[Plugin.Config.NumSegments];
-            var seg = 2 * MathF.PI / Plugin.Config.NumSegments;
-            for (int i = 0; i < Plugin.Config.NumSegments; i++)
+            var points = new Vector2[Config.NumSegments];
+            var seg = 2 * MathF.PI / Config.NumSegments;
+            for (int i = 0; i < Config.NumSegments; i++)
             {
                 Projection.WorldToScreen(
                     new(Centre.X + Radius * MathF.Sin(i * seg),
@@ -39,14 +39,15 @@ namespace ActionEffectRange.Drawing.Types
                 }
             }
 
-            if (Plugin.Config.Filled && (Plugin.Config.LargeDrawOpt == 0 || Radius < Plugin.Config.LargeThreshold))
+            if (Config.Filled 
+                && (Config.LargeDrawOpt == 0 || Radius < Config.LargeThreshold))
             {
                 drawList.PathFillConvex(FillColour);
                 foreach (var p in points)
                     if (!float.IsNaN(p.X)) drawList.PathLineTo(p);
             }
-            if (Plugin.Config.OuterRing)
-                drawList.PathStroke(RingColour, ImDrawFlags.Closed, Plugin.Config.Thickness);
+            if (Config.OuterRing)
+                drawList.PathStroke(RingColour, ImDrawFlags.Closed, Config.Thickness);
             drawList.PathClear();
         }
     }

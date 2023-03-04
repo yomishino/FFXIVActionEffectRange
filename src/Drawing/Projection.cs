@@ -1,7 +1,5 @@
 ﻿using Dalamud.Interface;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Kernel;
-using System;
-using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace ActionEffectRange.Drawing
@@ -24,7 +22,8 @@ namespace ActionEffectRange.Drawing
         public static bool WorldToScreen(Vector3 worldPos, out Vector2 screenPos) 
             => WorldToScreen(worldPos, out screenPos, out _);
 
-        internal static unsafe bool WorldToScreen(Vector3 worldPos, out Vector2 screenPos, out Vector3 pCoordsRaw)
+        internal static unsafe bool WorldToScreen(
+            Vector3 worldPos, out Vector2 screenPos, out Vector3 pCoordsRaw)
         {
             if (getMatrixSingleton == null)
                 throw new InvalidOperationException("getMatrixSingleton did not initiate correctly");
@@ -46,7 +45,9 @@ namespace ActionEffectRange.Drawing
             var pCoords = Vector3.Transform(worldPos, viewProjectionMatrix);
             pCoordsRaw = pCoords;
 
-            screenPos = new Vector2(pCoords.X / MathF.Abs(pCoords.Z), pCoords.Y / MathF.Abs(pCoords.Z));
+            screenPos = new Vector2(
+                pCoords.X / MathF.Abs(pCoords.Z), 
+                pCoords.Y / MathF.Abs(pCoords.Z));
 
             screenPos.X = (0.5f * width * (screenPos.X + 1f)) + windowPos.X;
             screenPos.Y = (0.5f * height * (1f - screenPos.Y)) + windowPos.Y;

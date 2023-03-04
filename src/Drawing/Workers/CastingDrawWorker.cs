@@ -2,7 +2,6 @@
 using ActionEffectRange.Helpers;
 using ImGuiNET;
 using System.Collections.Generic;
-using System.Numerics;
 
 namespace ActionEffectRange.Drawing.Workers
 {
@@ -27,12 +26,12 @@ namespace ActionEffectRange.Drawing.Workers
         public void RefreshConfig()
         {
             castingRingColour = ImGui.ColorConvertFloat4ToU32(
-                Plugin.Config.DrawWhenCastingColour);
+                Config.DrawWhenCastingColour);
             castingFillColour = ImGui.ColorConvertFloat4ToU32(new(
-                Plugin.Config.DrawWhenCastingColour.X,
-                Plugin.Config.DrawWhenCastingColour.Y,
-                Plugin.Config.DrawWhenCastingColour.Z,
-                Plugin.Config.DrawWhenCastingColour.W * Plugin.Config.FillAlpha));
+                Config.DrawWhenCastingColour.X,
+                Config.DrawWhenCastingColour.Y,
+                Config.DrawWhenCastingColour.Z,
+                Config.DrawWhenCastingColour.W * Config.FillAlpha));
         }
 
         public void Clear()
@@ -47,7 +46,7 @@ namespace ActionEffectRange.Drawing.Workers
         }
 
         public bool HasDataToDraw()
-            => Plugin.DrawWhenCasting && drawDataQueue.Count > 0
+            => DrawWhenCasting && drawDataQueue.Count > 0
             && ActionManagerHelper.IsCasting; 
 
         public void CleanupOld()
@@ -55,23 +54,20 @@ namespace ActionEffectRange.Drawing.Workers
             // Always clear all when at least one DrawData too old
             // as we only allow this worker to draw for one action at a time
 
-            if (Plugin.Config.DrawWhenCastingUntilCastEnd)
+            if (Config.DrawWhenCastingUntilCastEnd)
             {
                 CheckSequence(ActionManagerHelper.CurrentSeq);
             }
             else
             {
                 if (drawDataQueue.TryPeek(out var head)
-                    && head.ElapsedSeconds > drawDelay + Plugin.Config.PersistSeconds)
+                    && head.ElapsedSeconds > drawDelay + Config.PersistSeconds)
                 {
                     Clear();
                 }
             }
         }
 
-        // FIXME: won't draw if opening config UI; but normal drawing works fine
-        // Problem may be because this worker clear everything when refreshing config;
-        // Removed that line and test 
         public void Draw(ImDrawListPtr drawList)
         {
             if (!ActionManagerHelper.IsCasting) return;
@@ -85,9 +81,8 @@ namespace ActionEffectRange.Drawing.Workers
         public void QueueDrawing(uint sequence, EffectRangeData effectRangeData,
             Vector3 originPos, Vector3 targetPos, float rotation)
         {
-            if (!Plugin.IsPlayerLoaded || !Plugin.DrawWhenCasting) return;
-            Plugin.LogUserDebug(
-                $"{GetType().Name}.QueueDrawing => " +
+            if (!IsPlayerLoaded || !DrawWhenCasting) return;
+            LogUserDebug($"{GetType().Name}.QueueDrawing => " +
                 $"{effectRangeData}, orig={originPos}, target={targetPos}, rotation={rotation}");
             CheckSequence(sequence);
             var drawData = EffectRangeDrawing.GenerateDrawData(

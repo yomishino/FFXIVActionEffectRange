@@ -1,7 +1,6 @@
 ﻿using ActionEffectRange.Actions.Data.Template;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System;
 
 namespace ActionEffectRange.Actions.Data.Predefined
 {
@@ -33,7 +32,8 @@ namespace ActionEffectRange.Actions.Data.Predefined
                 GeneratePair(7418, .25f),               // Flamethrower (MCH)
                 GeneratePair(25791, 1f / 3f),           // Fan Dance IV (DNC)
 
-                GeneratePair(29428, .25f),              // Fan Dance (DNC PvP)      --- idk why devteam decided to make it smaller than PvE version but nah
+                GeneratePair(29428, .25f),              // Fan Dance (DNC PvP)
+                                                        // --- idk why the dev team decided to make it smaller than PvE version but nah
                 GeneratePair(29547, .5f),               // Grim Swathe (RPR PvP)
                 GeneratePair(29548, .5f),               // Lemure's Slice (RPR PvP)
 

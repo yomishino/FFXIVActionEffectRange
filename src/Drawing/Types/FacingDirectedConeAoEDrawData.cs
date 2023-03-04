@@ -1,6 +1,4 @@
-﻿using System.Numerics;
-
-namespace ActionEffectRange.Drawing.Types
+﻿namespace ActionEffectRange.Drawing.Types
 {
     public class FacingDirectedConeAoEDrawData : ConeAoEDrawData
     {

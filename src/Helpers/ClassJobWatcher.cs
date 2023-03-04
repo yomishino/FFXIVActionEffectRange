@@ -1,11 +1,18 @@
 ﻿namespace ActionEffectRange.Helpers
 {
-    public static class ClassJobWatcher
+    internal static class ClassJobWatcher
     {
         private static uint classJobId;
 
         public delegate void OnClassJobChangedDelegate(uint currentClassJob);
-        public static event OnClassJobChangedDelegate ClassJobChanged = delegate { }; 
+        public static event OnClassJobChangedDelegate ClassJobChanged = delegate { };
+
+        public static uint CurrentClassJobId => LocalPlayer?.ClassJob.Id ?? 0;
+
+        public static bool IsCurrentClassJobACNRelated()
+            => CurrentClassJobId == 26  // ACN
+            || CurrentClassJobId == 27  // SMN
+            || CurrentClassJobId == 28; // SCH
 
         private static void CheckClassJobChange(uint currentClassJobId)
         {
@@ -18,20 +25,19 @@
 
         private static void OnFrameworkUpdate(Dalamud.Game.Framework _)
         {
-            if (Plugin.ClientState.LocalContentId == 0) return;
-            var player = Plugin.ClientState.LocalPlayer;
-            if (player == null) return;
-            CheckClassJobChange(player.ClassJob.Id);
+            if (ClientState.LocalContentId == 0) return;
+            if (LocalPlayer == null) return;
+            CheckClassJobChange(CurrentClassJobId);
         }
 
         public static void Dispose()
         {
-            Plugin.Framework.Update -= OnFrameworkUpdate;
+            Framework.Update -= OnFrameworkUpdate;
         }
 
         static ClassJobWatcher()
         {
-            Plugin.Framework.Update += OnFrameworkUpdate;
+            Framework.Update += OnFrameworkUpdate;
         }
     }
 }

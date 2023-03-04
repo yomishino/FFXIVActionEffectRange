@@ -3,6 +3,8 @@ using System.Collections.Immutable;
 
 namespace ActionEffectRange.Actions.Data.Predefined
 {
+    // Not used now
+
     // Actions implemented as pet actions
     public class PetLikeActionMap
     {

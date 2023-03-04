@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 
 namespace ActionEffectRange.Actions.Data.Predefined
 {
+    // Not used now
     public static class PetActionMap
     {
         public static readonly ImmutableDictionary<uint, ImmutableHashSet<uint>> Dictionary = new KeyValuePair<uint, ImmutableHashSet<uint>>[]
