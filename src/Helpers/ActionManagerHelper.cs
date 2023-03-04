@@ -1,5 +1,4 @@
 ﻿using FFXIVClientStructs.FFXIV.Client.Game;
-using System;
 using System.Runtime.InteropServices;
 
 namespace ActionEffectRange.Helpers
@@ -24,10 +23,21 @@ namespace ActionEffectRange.Helpers
             ? (uint)Marshal.ReadInt32(actionMgrPtr + 0x24) : 0u;
         public static uint CastTargetObjectId => actionMgrPtr != IntPtr.Zero
             ? (uint)Marshal.ReadInt32(actionMgrPtr + 0x38) : 0u;
-
+        public static float CastTargetPosX => actionMgrPtr != IntPtr.Zero
+            ? Interop.MarshalFloat(actionMgrPtr + 0x40) : 0f;
+        public static float CastTargetPosY => actionMgrPtr != IntPtr.Zero
+            ? Interop.MarshalFloat(actionMgrPtr + 0x44) : 0f;
+        public static float CastTargetPosZ => actionMgrPtr != IntPtr.Zero
+            ? Interop.MarshalFloat(actionMgrPtr + 0x48) : 0f;
+        // The player rotation when casting
+        public static float CastRotation => actionMgrPtr != IntPtr.Zero
+            ? Interop.MarshalFloat(actionMgrPtr + 0x50) : 0f;
+        
         static ActionManagerHelper()
         {
             actionMgrPtr = (IntPtr)ActionManager.Instance();
+            if (actionMgrPtr == IntPtr.Zero)
+                LogWarning("Ptr to ActionManager is 0");
         }
     }
 }

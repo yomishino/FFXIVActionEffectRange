@@ -1,10 +1,8 @@
-﻿using ActionEffectRange.Actions;
+﻿using ActionEffectRange.Actions.Data;
 using ActionEffectRange.Actions.Data.Template;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using ImGuiNET;
-using System;
-using System.Numerics;
 
 namespace ActionEffectRange.UI
 {

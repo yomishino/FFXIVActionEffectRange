@@ -13,13 +13,8 @@ namespace ActionEffectRange.Actions.Data.Predefined
         public static readonly ImmutableDictionary<uint, AoETypeDataItem> PredefinedSpecial
             = new KeyValuePair<uint, AoETypeDataItem>[]
             {
-                GeneratePair(2270, Circle, Harmful),     // Doton (NIN)
-                GeneratePair(3639, Circle, Harmful),     // salted earth (DRK)
-
                 GeneratePair(7385, Cone, Beneficial),  // Passage of Arms (PLD)
                 GeneratePair(7418, Cone, Harmful),   // Flamethrower (MCH)
-
-                GeneratePair(16553, Circle, Beneficial),   // celestial opposition (AST)
             }.ToImmutableDictionary();
 
         private static KeyValuePair<uint, AoETypeDataItem> GeneratePair(

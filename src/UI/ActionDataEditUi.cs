@@ -1,11 +1,9 @@
-﻿using ActionEffectRange.Actions;
+﻿using ActionEffectRange.Actions.Data;
 using ActionEffectRange.Actions.Data.Template;
 using Dalamud.Interface;
 using ImGuiNET;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using ExcSheets = Lumina.Excel.GeneratedSheets;
 
 namespace ActionEffectRange.UI
@@ -84,9 +82,11 @@ namespace ActionEffectRange.UI
                 actionSearchMatchedActions 
                     = string.IsNullOrWhiteSpace(input) ? null
                     : ActionDataInterfacing.GetAllPartialMatchActionExcelRows(
-                        actionSearchInput, true, int.MaxValue, true, ActionSearchExtraFilter)?
+                        actionSearchInput, true, int.MaxValue, true, 
+                        ActionSearchExtraFilter)?
                     .ToList();
-                shouldShowActionSearchMatches = actionSearchMatchedActions?.Any() ?? false;
+                shouldShowActionSearchMatches 
+                    = actionSearchMatchedActions?.Any() ?? false;
             }
 
             // Show matching results
@@ -94,7 +94,8 @@ namespace ActionEffectRange.UI
             {
                 actionSearchMatchesDisplayRectMin = ImGui.GetCursorScreenPos();
                 var displayRectSize = new Vector2(
-                    ImGui.GetContentRegionAvail().X, ImGui.GetTextLineHeight() * 10);
+                    ImGui.GetContentRegionAvail().X, 
+                    ImGui.GetTextLineHeight() * 10);
                 actionSearchMatchesDisplayRectMax
                     = actionSearchMatchesDisplayRectMin + displayRectSize;
                 if (ImGui.BeginChildFrame(

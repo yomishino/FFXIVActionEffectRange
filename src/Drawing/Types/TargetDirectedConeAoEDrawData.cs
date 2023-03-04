@@ -1,6 +1,4 @@
-﻿using System.Numerics;
-
-namespace ActionEffectRange.Drawing.Types
+﻿namespace ActionEffectRange.Drawing.Types
 {
     public class TargetDirectedConeAoEDrawData : ConeAoEDrawData
     {
@@ -10,7 +8,7 @@ namespace ActionEffectRange.Drawing.Types
             Vector3 origin, Vector3 target, byte baseEffectRange, byte xAxisModifier, 
             float centralAngleCycles, float rotationOffset, uint ringColour, uint fillColour)
             : base(origin, baseEffectRange, xAxisModifier, 
-                  CalculateRotation(origin, target) + rotationOffset, centralAngleCycles, 
+                  CalcRotation(origin, target) + rotationOffset, centralAngleCycles, 
                   ringColour, fillColour) { }
     }
 }

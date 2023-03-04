@@ -31,9 +31,9 @@ namespace ActionEffectRange.Drawing
 
         public static void OnTick()
         {
-            if (!Plugin.Config.Enabled) return;
+            if (!Config.Enabled) return;
 
-            if (!Plugin.IsPlayerLoaded)
+            if (!IsPlayerLoaded)
             {
                 Clear();
                 return;
@@ -59,9 +59,9 @@ namespace ActionEffectRange.Drawing
 
                 workers.ForEach(worker => worker.Draw(ImGui.GetWindowDrawList()));
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
-                PluginLog.Error($"{e}");
+                LogError($"{e}");
             }
             finally
             {
@@ -108,8 +108,13 @@ namespace ActionEffectRange.Drawing
                             ringCol, fillCol)
                         : new TargetDirectedLineAoEDrawData(
                             originPos, targetPos, lineData.EffectRange,
-                            lineData.XAxisModifier, false, 
-                            lineData.RotationOffset, ringCol, fillCol);
+                            lineData.XAxisModifier, lineData.RotationOffset, 
+                            ringCol, fillCol);
+                case BidirectedLineAoEEffectRangeData biDirLineData:
+                    return new BidirectedLineAoEDrawData(
+                        originPos, rotation, biDirLineData.EffectRange,
+                        biDirLineData.XAxisModifier, biDirLineData.RotationOffset,
+                        ringCol, fillCol);
                 case DashAoEEffectRangeData dashData:
                     return new DashAoEDrawData(
                         originPos, targetPos, dashData.EffectRange,
@@ -125,7 +130,7 @@ namespace ActionEffectRange.Drawing
                         crossData.XAxisModifier, crossData.RotationOffset, 
                         ringCol, fillCol);
                 default:
-                    Plugin.LogUserDebug(
+                    LogUserDebug(
                         $"---No DrawData created for Action#{effectRangeData.ActionId}: " +
                         $"created {effectRangeData.GetType().Name} from unknown AoE type");
                     return null;

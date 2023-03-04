@@ -10,7 +10,8 @@ namespace ActionEffectRange.Actions.EffectRange
         public readonly ActionHarmfulness Harmfulness;
         public readonly sbyte Range;
         public readonly byte EffectRange;
-        public readonly byte XAxisModifier; // for straight line aoe, this is the width?
+        // XAxisModifier decides the width of line aoe?
+        public readonly byte XAxisModifier; 
         public readonly byte CastType;
 
         public readonly bool IsOriginal;
@@ -30,12 +31,6 @@ namespace ActionEffectRange.Actions.EffectRange
             CastType = castType;
             IsOriginal = isOriginal;
         }
-
-        protected EffectRangeData(Lumina.Excel.GeneratedSheets.Action actionRow)
-            : this(actionRow.RowId, actionRow.ActionCategory.Row, 
-                  actionRow.TargetArea, ActionData.GetActionHarmfulness(actionRow), 
-                  actionRow.Range, actionRow.EffectRange, actionRow.XAxisModifier, 
-                  actionRow.CastType, isOriginal: true) { }
 
         public static EffectRangeData Create(uint actionId, 
             uint actionCategory, bool isGT, ActionHarmfulness harmfulness, 
@@ -71,18 +66,6 @@ namespace ActionEffectRange.Actions.EffectRange
                     isGT, harmfulness, range, effectRange, xAxisModifier, 
                     castType, isOriginal: isOriginal)
             };
-
-        public static EffectRangeData Create(Lumina.Excel.GeneratedSheets.Action actionRow)
-            => Create(actionRow.RowId, actionRow.ActionCategory.Row, 
-                actionRow.TargetArea, ActionData.GetActionHarmfulness(actionRow), 
-                actionRow.Range, actionRow.EffectRange, actionRow.XAxisModifier, 
-                actionRow.CastType, isOriginal: true);
-
-        public static EffectRangeData CreateChangeHarmfulness(
-            EffectRangeData original, ActionHarmfulness harmfulness)
-            => Create(original.ActionId, (uint)original.Category, original.IsGTAction, 
-                harmfulness, original.Range, original.EffectRange, 
-                original.XAxisModifier, original.CastType, isOriginal: false);
 
         public override string ToString()
             => $"{GetType().Name}{{ ActionId: {ActionId}, Category: {Category}, " +

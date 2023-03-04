@@ -3,12 +3,12 @@ using ActionEffectRange.Actions.Enums;
 
 namespace ActionEffectRange.Actions.EffectRange
 {
-    public class BidirectedLineAoEEffectRangeData : EffectRangeData
+    public class LineAoEEffectRangeData : EffectRangeData
     {
         public float RotationOffset;
         public byte Width => XAxisModifier;
 
-        public BidirectedLineAoEEffectRangeData(uint actionId, 
+        public LineAoEEffectRangeData(uint actionId, 
             uint actionCategory, bool isGT, ActionHarmfulness harmfulness, 
             sbyte range, byte effectRange, byte xAxisModifier, byte castType,
             float rotationOffset = 0, bool isOriginal = false)
@@ -18,8 +18,8 @@ namespace ActionEffectRange.Actions.EffectRange
             RotationOffset = rotationOffset;
         }
 
-        public BidirectedLineAoEEffectRangeData(
-            Lumina.Excel.GeneratedSheets.Action actionRow, float rotationOffset = 0)
+        public LineAoEEffectRangeData(Lumina.Excel.GeneratedSheets.Action actionRow,
+            float rotationOffset = 0)
             : this(actionRow.RowId, actionRow.ActionCategory.Row, actionRow.TargetArea,
                   ActionData.GetActionHarmfulness(actionRow), actionRow.Range, 
                   actionRow.EffectRange, actionRow.XAxisModifier, actionRow.CastType, 

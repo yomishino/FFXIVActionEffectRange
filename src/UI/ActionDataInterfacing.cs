@@ -1,6 +1,5 @@
-﻿using ActionEffectRange.Actions;
+﻿using ActionEffectRange.Actions.Data;
 using ActionEffectRange.Actions.Enums;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -14,7 +13,8 @@ namespace ActionEffectRange.UI
             string input, bool alsoMatchId, int maxCount, 
             bool playerCombatActionOnly, Func<ExcSheets.Action, bool>? filter)
             => ActionData.ActionExcelSheet?.Where(row => row != null
-                && (row.Name.RawString.Contains(input, StringComparison.CurrentCultureIgnoreCase)
+                && (row.Name.RawString.Contains(input, 
+                        StringComparison.CurrentCultureIgnoreCase)
                     || alsoMatchId && row.RowId.ToString().Contains(input))
                 && (!playerCombatActionOnly || ActionData.IsPlayerCombatAction(row)) 
                 && (filter == null || filter(row)))

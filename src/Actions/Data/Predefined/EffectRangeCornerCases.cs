@@ -1,88 +1,50 @@
 ﻿using ActionEffectRange.Actions.EffectRange;
-using ActionEffectRange.Actions.Enums;
-using System.Collections.Generic;
 
 namespace ActionEffectRange.Actions.Data.Predefined
 {
     // The remaining cases for EffectRangeData overriding
-    // that are not templatised yet
     public static class EffectRangeCornerCases
     {
-        public static List<EffectRangeData> GetUpdatedEffectDataList(EffectRangeData original)
-        {
-            var updated = new List<EffectRangeData>();
-            switch (original.ActionId)
+        public static EffectRangeData UpdateEffectRangeData(EffectRangeData erdata)
+            => erdata.ActionId switch
             {
-                case 24318:     // pneuma (SGE)
-                    // Add the additional heal effect range
-                    updated.Add(new CircleAoEEffectRangeData(
-                        original.ActionId, (uint)original.Category, 
-                        original.IsGTAction, ActionHarmfulness.Beneficial, 
-                        0, 20, 0, 2, isOriginal: false));
-                    // Add back the original attack effect
-                    updated.Add(original);
-                    return updated;
-                case 25862:     // liturgy of the bell (placing) (WHM)
-                    // Use the heal effect range
-                    updated.Add(new CircleAoEEffectRangeData(
-                        original.ActionId, (uint)original.Category,
-                        original.IsGTAction, original.Harmfulness,
-                        0, 20, 0, original.CastType, false));
-                    return updated;
-                // PvP cases
-                case 29097:     // Eventide (DRK PvP)
-                    // Add the additional line effect range to the back;
-                    //  also halve the effect range:
-                    //  the original effect range is for front + back
-                    // This would result in a "horizontal" line drawn in the centre
-                    // if users choose to make shape outline visible though
-                    updated.Add(new LineAoEEffectRangeData(
-                        original.ActionId, (uint)original.Category, 
-                        original.IsGTAction, original.Harmfulness, 
-                        original.Range, (byte)(original.EffectRange / 2), 
-                        original.XAxisModifier,original.CastType, 
-                        System.MathF.PI, isOriginal: false));
-                    updated.Add(new LineAoEEffectRangeData(
-                        original.ActionId, (uint)original.Category, 
-                        original.IsGTAction,original.Harmfulness, 
-                        original.Range, (byte)(original.EffectRange / 2), 
-                        original.XAxisModifier, original.CastType, isOriginal: false));
-                    return updated;
-                case 29260:     // Pneuma (SGE PvP)
-                    // Add the additional heal effect range
-                    updated.Add(new CircleAoEEffectRangeData(
-                        original.ActionId, (uint)original.Category,
-                        original.IsGTAction, ActionHarmfulness.Beneficial, 
-                        0, 20, 0, 2, isOriginal: false));
-                    // Add back the original attack effect
-                    updated.Add(original);
-                    return updated;
-                case 29422:     // Honing Dance (DNC PvP)
-                    // Override as Circle AoE, also providing EffectRange
-                    updated.Add(new CircleAoEEffectRangeData(
-                        original.ActionId, (uint)original.Category,
-                        original.IsGTAction, ActionHarmfulness.Harmful, 
-                        0, 5, 0, 2, isOriginal: false));
-                    return updated;
-                case 29532:     // Hissatsu: Soten (SAM PvP)
-                    // Providing EffectRange 
-                    // EffectRange of 1 is from Excel data for the old PvP Soten skill
-                    updated.Add(new DashAoEEffectRangeData(
-                        original.ActionId, (uint)original.Category,
-                        original.IsGTAction, original.Harmfulness,
-                        original.Range, 1, original.XAxisModifier,
-                        original.CastType, isOriginal: false));
-                    return updated;
-                case 29704:     // Southern Cross (White/Black) (RDM PvP)
-                case 29705:     // Southern Cross (Black) (RDM PvP)
-                    // Seems to have a 45-degree rotation offset
-                    updated.Add(new CrossAoEEffectRangeData(
-                        original, -System.MathF.PI / 4));
-                    return updated;
-                default:
-                    updated.Add(original);
-                    return updated;
-            }
-        }
+                // PvE
+
+                // Liturgy of the bell (placing) (WHM)
+                //  Use the effect range from #25863
+                25862 => new CircleAoEEffectRangeData(
+                        erdata.ActionId, (uint)erdata.Category,
+                        erdata.IsGTAction, erdata.Harmfulness,
+                        0, ActionData.GetActionExcelRow(25863)?.EffectRange ?? 0,
+                        0, erdata.CastType, false),
+
+                // PvP
+
+                // Eventide (DRK PvP)
+                //  Change to bidirected line AoE (front+back)
+                //  The original effect range is for front + back in total.
+                29097 => new BidirectedLineAoEEffectRangeData(
+                        erdata.ActionId, (uint)erdata.Category,
+                        erdata.IsGTAction, erdata.Harmfulness, erdata.Range, 
+                        erdata.EffectRange, erdata.XAxisModifier, 
+                        erdata.CastType, 0, isOriginal: true),
+
+                // Hissatsu: Soten (SAM PvP)
+                //  Providing EffectRange 
+                //  EffectRange of 1 is from Excel data for the old PvP Soten skill
+                29532 => new DashAoEEffectRangeData(
+                        erdata.ActionId, (uint)erdata.Category,
+                        erdata.IsGTAction, erdata.Harmfulness,
+                        erdata.Range, 1, erdata.XAxisModifier,
+                        erdata.CastType, isOriginal: false),
+
+                // Southern Cross (White/Black) (RDM PvP)
+                // Southern Cross (Black) (RDM PvP)
+                //  Seems to have a 45-degree rotation offset
+                29704 or 29705 => new CrossAoEEffectRangeData(
+                        erdata, -MathF.PI / 4),
+
+                _ => erdata
+            };
     }
 }

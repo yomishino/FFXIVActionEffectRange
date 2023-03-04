@@ -1,9 +1,8 @@
-﻿using ActionEffectRange.Actions;
+﻿using ActionEffectRange.Actions.Data;
 using ActionEffectRange.Actions.Data.Template;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using ImGuiNET;
-using System.Numerics;
 
 namespace ActionEffectRange.UI
 {
@@ -36,7 +35,8 @@ namespace ActionEffectRange.UI
         {
             ImGuiExt.MultiTextWrapped(
                 "Action in this blacklist will not be drawn.",
-                "You can use this blacklist to prevent a particular action from being drawn regardless of other settings.");
+                "You can use this blacklist to prevent a particular action " +
+                "from being drawn regardless of other settings.");
             ImGui.NewLine();
         }
 

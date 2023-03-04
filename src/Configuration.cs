@@ -1,15 +1,12 @@
 ﻿using ActionEffectRange.Actions.Data.Template;
 using Dalamud.Configuration;
 using Newtonsoft.Json;
-using System;
-using System.Numerics;
-
 namespace ActionEffectRange
 {
     [Serializable]
     public partial class Configuration : IPluginConfiguration
     {
-        public int Version { get; set; } = 0;
+        public int Version { get; set; } = 1;
 
         public bool Enabled = true;
         public bool EnabledPvP = true;
@@ -19,7 +16,8 @@ namespace ActionEffectRange
         public bool DrawHarmful = true;
         public Vector4 HarmfulColour = new(1, .5f, .5f, 1);
 
-        public bool DrawOwnPets = true;
+        public bool DrawACNPets = true;
+        public bool DrawSummonedCompanions = true;
         public bool DrawGT = true;
         public bool DrawEx = false;
         
@@ -43,9 +41,12 @@ namespace ActionEffectRange
         public Vector4 DrawWhenCastingColour = new(1f, 1f, .5f, 1);
         public bool DrawWhenCastingUntilCastEnd = true;
 
-        public uint[] ActionBlacklist = Array.Empty<uint>();
-        public AoETypeDataItem[] AoETypeList = Array.Empty<AoETypeDataItem>();
-        public ConeAoEAngleDataItem[] ConeAoeAngleList = Array.Empty<ConeAoEAngleDataItem>();
+        public uint[] ActionBlacklist 
+            = Array.Empty<uint>();
+        public AoETypeDataItem[] AoETypeList 
+            = Array.Empty<AoETypeDataItem>();
+        public ConeAoEAngleDataItem[] ConeAoeAngleList 
+            = Array.Empty<ConeAoEAngleDataItem>();
 
         public bool LogDebug = false;
         public bool ShowSponsor = false;
@@ -53,7 +54,7 @@ namespace ActionEffectRange
 
         public void Save()
         {
-            Plugin.PluginInterface.SavePluginConfig(this);
+            PluginInterface.SavePluginConfig(this);
         }
     }
 }

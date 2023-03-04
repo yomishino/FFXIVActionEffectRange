@@ -1,4 +1,5 @@
-﻿using ActionEffectRange.Actions.Enums;
+﻿using ActionEffectRange.Actions.Data;
+using ActionEffectRange.Actions.Enums;
 
 namespace ActionEffectRange.Actions.EffectRange
 {

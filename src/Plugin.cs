@@ -1,4 +1,12 @@
-﻿using ActionEffectRange.Actions;
+﻿global using static ActionEffectRange.Game;
+global using static ActionEffectRange.Plugin;
+global using static Dalamud.Logging.PluginLog;
+global using ActionEffectRange.Utils;
+global using System;
+global using System.Numerics;
+
+using ActionEffectRange.Actions;
+using ActionEffectRange.Actions.Data;
 using ActionEffectRange.Drawing;
 using ActionEffectRange.Helpers;
 using ActionEffectRange.UI;
@@ -10,7 +18,6 @@ using Dalamud.Game.ClientState.Buddy;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.IoC;
 using Dalamud.Plugin;
-using System;
 
 namespace ActionEffectRange
 {
@@ -82,7 +89,8 @@ namespace ActionEffectRange
 
         public Plugin()
         {
-            Config = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+            Config = PluginInterface.GetPluginConfig() as Configuration 
+                ?? new Configuration();
 
             InitializeCommands();
 
@@ -99,7 +107,8 @@ namespace ActionEffectRange
 
         private static void InitializeCommands()
         {
-            CommandManager.AddHandler(commandToggleConfig, new CommandInfo((_, _) => InConfig = !InConfig)
+            CommandManager.AddHandler(commandToggleConfig, 
+                new CommandInfo((_, _) => InConfig = !InConfig)
             {
                 HelpMessage = "Toggle the Configuration Window of ActionEffectRange",
                 ShowInHelp = true
@@ -142,16 +151,8 @@ namespace ActionEffectRange
 
         public static void LogUserDebug(string msg)
         {
-            if (Config.LogDebug) Dalamud.Logging.PluginLog.Debug(msg);
+            if (Config.LogDebug) LogDebug(msg);
         }
-
-
-        public static bool IsPlayerLoaded => ClientState.LocalContentId != 0 && ClientState.LocalPlayer != null;
-
-        public static bool IsPvPZone
-            => DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.TerritoryType>()?
-                .GetRow(ClientState.TerritoryType)?.IsPvpZone ?? false;
-
 
 
         #region IDisposable Support

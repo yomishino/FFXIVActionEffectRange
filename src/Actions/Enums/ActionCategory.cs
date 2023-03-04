@@ -3,6 +3,7 @@
     // Excel "ActionCategory"
     public enum ActionCategory
     {
+        Invalid = 0,
         AA = 1,
         Spell = 2,
         WS = 3,

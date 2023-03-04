@@ -1,482 +1,628 @@
-﻿using ActionEffectRange.Actions.EffectRange;
-using ActionEffectRange.Actions.Enums;
+﻿using ActionEffectRange.Actions.Data;
+using ActionEffectRange.Actions.EffectRange;
 using ActionEffectRange.Drawing;
 using ActionEffectRange.Helpers;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Hooking;
-using Dalamud.Logging;
-using System;
 using System.Collections.Generic;
-using System.Numerics;
 using System.Runtime.InteropServices;
-using FVector3 = FFXIVClientStructs.FFXIV.Common.Math.Vector3;
+using Vector3Struct = FFXIVClientStructs.FFXIV.Common.Math.Vector3;
 
 namespace ActionEffectRange.Actions
 {
-    public static class ActionWatcher
+    internal static class ActionWatcher
     {
-        private static readonly Dictionary<ushort, ActionSequenceInfoSet> recordedActionSequence = new();
-        private static readonly Dictionary<uint, ActionSequenceInfoSet> recordedPetActionEffectToWait = new();
-        private static readonly Dictionary<uint, ActionSequenceInfoSet> recordedPetLikeActionEffectToWait = new();
+        private const float SeqExpiry = 2.5f; // this is arbitrary...
 
-        // Send what is executed; won't be called if queued but not yet executed or failed to execute (e.g. cast cancelled)
-        // Information here also more accurate than from UseAction; handles combo/proc and target issues esp. with plugins like FFXIVCombo / ReAction 
-        // Not called for GT actions tho
-        private delegate void SendActionDelegate(long targetObjectId, byte actionType, uint actionId, ushort sequence, long a5, long a6, long a7, long a8, long a9);
+        private static uint lastSendActionSeq = 0;
+        private static uint lastReceivedMainSeq = 0;
+
+        private static readonly ActionSeqRecord playerActionSeqs = new(5);
+        private static readonly HashSet<ushort> skippedSeqs = new();
+
+        // Send what is executed; won't be called if queued but not yet executed
+        //  or failed to execute (e.g. cast cancelled)
+        // Information here also more accurate than from UseAction; handles combo/proc
+        //  and target issues esp. with other plugins being used.
+        // Not called for GT actions
+        private delegate void SendActionDelegate(long targetObjectId, 
+            byte actionType, uint actionId, ushort sequence, long a5, long a6, long a7, long a8, long a9);
         private static readonly Hook<SendActionDelegate>? SendActionHook;
-        private static void SendActionDetour(long targetObjectId, byte actionType, uint actionId, ushort sequence, long a5, long a6, long a7, long a8, long a9)
+        private static void SendActionDetour(long targetObjectId, 
+            byte actionType, uint actionId, ushort sequence, long a5, long a6, long a7, long a8, long a9)
         {
             SendActionHook!.Original(targetObjectId, actionType, actionId, sequence, a5, a6, a7, a8, a9);
-            Plugin.LogUserDebug($"SendAction => target={targetObjectId:X}, action={actionId}, type={actionType}, seq={sequence}");
+
+            try
+            {
+                LogUserDebug($"SendAction => target={targetObjectId:X}, " +
+                    $"action={actionId}, type={actionType}, seq={sequence}");
 #if DEBUG
-            PluginLog.Debug($"** SendAction: targetId={targetObjectId:X}, " +
-                $"actionType={actionType}, actionId={actionId}, seq={sequence}, " +
-                $"a5={a5:X}, a6={a6:X}, a7={a7:X}, a8={a8:X}, a9={a9:X}");
-            PluginLog.Debug($"** ---AcMgr: currentSeq{ActionManagerHelper.CurrentSeq}, " +
-                $"lastRecSeq={ActionManagerHelper.LastRecievedSeq}");
+                LogDebug($"** SendAction: targetId={targetObjectId:X}, " +
+                    $"actionType={actionType}, actionId={actionId}, seq={sequence}, " +
+                    $"a5={a5:X}, a6={a6:X}, a7={a7:X}, a8={a8:X}, a9={a9:X}");
+                LogDebug($"** ---AcMgr: currentSeq{ActionManagerHelper.CurrentSeq}, " +
+                    $"lastRecSeq={ActionManagerHelper.LastRecievedSeq}");
 #endif
-            if (!Plugin.IsPlayerLoaded || !ShouldProcessAction(actionType, actionId)) return;
+                lastSendActionSeq = sequence;
 
-            if (!ProcessInitialStepInSend(actionId, out var originalData)) return;
-            if (originalData == null) return;   // shouldn't be possible but nah
+                if (!ShouldProcessAction(actionType, actionId))
+                {
+                    skippedSeqs.Add(sequence);
+                    return;
+                }
 
-            var target = new Lazy<GameObject?>(() => Plugin.ObejctTable.SearchById((uint)targetObjectId));
+                var actionCategory = ActionData.GetActionCategory(actionId);
+                if (!ShouldDrawForActionCategory(actionCategory))
+                {
+                    LogUserDebug($"---Skip action#{actionId}: " +
+                        $"Not drawing for actions of category {actionCategory}");
+                    skippedSeqs.Add(sequence);
+                    return;
+                }
 
-            if (CheckPetAndPetLikeInSend(originalData, sequence, targetObjectId, target))
-            {
-                recordedActionSequence[sequence] = new(sequence);
-                return;
-            }
-
-            var overridenDataSet = CheckEffectRangeDataOverriding(originalData);
-            recordedActionSequence[sequence] = new(sequence);
-            foreach (var data in overridenDataSet)
-            {
-                if (!ShouldDrawForEffectRange(data)) continue;
-                if (!ShouldDrawForHarmfulness(data)) continue; 
-
-                if (data.Range == 0)
-                    recordedActionSequence[sequence].Add(new(data, 
-                        Plugin.ClientState.LocalPlayer!.Position, 
-                        Plugin.ClientState.LocalPlayer!.Position, 
-                        Plugin.ClientState.LocalPlayer!.Rotation, false));
+                if (targetObjectId == 0 || targetObjectId == InvalidGameObjectId)
+                {
+                    LogUserDebug($"---Skip: Invalid target #{targetObjectId}");
+                    return;
+                }
+                else if (targetObjectId == LocalPlayer!.ObjectId)
+                {
+                    var snapshot = new SeqSnapshot(sequence);
+                    playerActionSeqs.Add(new(actionId, snapshot, false));
+                }
                 else
                 {
-                    if (target.Value != null) recordedActionSequence[sequence].Add(new(data, 
-                        Plugin.ClientState.LocalPlayer!.Position, 
-                        target.Value.Position, Plugin.ClientState.LocalPlayer!.Rotation, false));
-                    else PluginLog.Error($"Cannot find valid target of id {targetObjectId:X} for action {actionId}");
+                    var target = ObejctTable.SearchById((uint)targetObjectId);
+                    if (target != null)
+                    {
+                        var snapshot = new SeqSnapshot(sequence,
+                            target.ObjectId, target.Position);
+                        playerActionSeqs.Add(new(actionId, snapshot, false));
+                    }
+                    else
+                    {
+                        LogError($"Cannot find valid target #{targetObjectId:X} for action#{actionId}");
+                        return;
+                    }
                 }
+            } 
+            catch (Exception e)
+            {
+                LogError($"{e}");
             }
         }
 
-        private delegate byte UseActionLocationDelegate(IntPtr actionManager, byte actionType, uint actionId, long targetObjectId, IntPtr location, uint param);
+        private delegate byte UseActionLocationDelegate(IntPtr actionManager, 
+            byte actionType, uint actionId, long targetObjectId, IntPtr location, uint param);
         private static readonly Hook<UseActionLocationDelegate>? UseActionLocationHook;
-        private static byte UseActionLocationDetour(IntPtr actionManager, byte actionType, uint actionId, long targetObjectId, IntPtr location, uint param)
+        private static byte UseActionLocationDetour(IntPtr actionManager, 
+            byte actionType, uint actionId, long targetObjectId, IntPtr location, uint param)
         {
-            var ret = UseActionLocationHook!.Original(actionManager, actionType, actionId, targetObjectId, location, param);
-#if DEBUG
-            PluginLog.Debug($"** UseActionLocation: actionType={actionType}, " +
-                $"actionId={actionId}, targetId={targetObjectId:X}, " +
-                $"loc={(Vector3)Marshal.PtrToStructure<FVector3>(location)} " +
-                $"param={param}; ret={ret}");
-#endif
-            if (ret == 0 || !Plugin.IsPlayerLoaded || !Plugin.Config.DrawGT
-                || !ShouldProcessAction(actionType, actionId)) return ret;
-            var seq = ActionManagerHelper.CurrentSeq;
-            if (recordedActionSequence.ContainsKey(seq)) return ret;
-
-            Plugin.LogUserDebug($"UseActionLocation => Possible GT action #{actionId} " +
-                $"type={actionType} at Seq={ActionManagerHelper.CurrentSeq}, using info from UseActionLocation");
-
-            if (!ProcessInitialStepInSend(actionId, out var originalData)) return ret;
-            if (originalData == null) return ret;
-
-            // NOTE: Should've checked if the action could be mapped to some pet/pet-like actions
-            // but currently none for those actions if we've reached here so just omit it for now
-
-            var overridenDataSet = CheckEffectRangeDataOverriding(originalData);
-            recordedActionSequence[seq] = new(seq);
-            foreach (var data in overridenDataSet)
+            var ret = UseActionLocationHook!.Original(actionManager, 
+                actionType, actionId, targetObjectId, location, param);
+            try
             {
-                if (!data.IsGTAction || !ShouldDrawForEffectRange(data)) continue;
-                if (!ShouldDrawForHarmfulness(data)) continue;
-                // Will use location from ReceiveActionEffect for target position later
-                recordedActionSequence[seq].Add(new(data,
-                    Plugin.ClientState.LocalPlayer!.Position, new(),
-                    Plugin.ClientState.LocalPlayer!.Rotation));
+#if DEBUG
+                LogDebug($"** UseActionLocation: actionType={actionType}, " +
+                    $"actionId={actionId}, targetId={targetObjectId:X}, " +
+                    $"loc={location:X} " +
+                    $"=> {(Vector3)Marshal.PtrToStructure<Vector3Struct>(location)} " +
+                    $"param={param}; ret={ret}");
+#endif
+                if (ret == 0) return ret;
+
+                var seq = ActionManagerHelper.CurrentSeq;
+
+                // Skip if already processed in SendAction; these are not GT actions
+                if (seq == lastSendActionSeq) return ret;
+
+                LogUserDebug($"UseActionLocation => " +
+                    $"Possible GT action #{actionId}, type={actionType};" +
+                    $"Seq={ActionManagerHelper.CurrentSeq}");
+
+                if (!Config.DrawGT)
+                {
+                    LogUserDebug($"---Skip: Config: disabed for GT actions");
+                    skippedSeqs.Add(seq);
+                    return ret;
+                }
+
+                if (!ShouldProcessAction(actionType, actionId))
+                {
+                    skippedSeqs.Add(seq);
+                    return ret;
+                }
+
+                var actionCategory = ActionData.GetActionCategory(actionId);
+                if (!ShouldDrawForActionCategory(actionCategory))
+                {
+                    LogUserDebug($"---Skip action#{actionId}: " +
+                        $"Not drawing for actions of category {actionCategory}");
+                    skippedSeqs.Add(seq);
+                    return ret;
+                }
+
+                // NOTE: Should've checked if the action could be mapped to some pet/pet-like actions
+                // but currently none for those actions if we've reached here so just omit it for now
+
+                playerActionSeqs.Add(new(actionId, new(seq), false));
+            }
+            catch (Exception e)
+            {
+                LogError($"{e}");
             }
             return ret;
         }
 
         // useType == 0 when queued;
-        // if queued action not executed immediately but wait in queue till later, useType == 1 when called for actual execution
-        private delegate byte UseActionDelegate(IntPtr actionManager, byte actionType, uint actionId, long targetObjectId, uint param, uint useType, int pvp, IntPtr a8);
+        // If queued action not executed immediately,
+        //  useType == 1 when this function is called later to actually execute the action
+        private delegate byte UseActionDelegate(IntPtr actionManager, 
+            byte actionType, uint actionId, long targetObjectId, uint param, uint useType, int pvp, IntPtr a8);
         private static readonly Hook<UseActionDelegate>? UseActionHook;
-        private static byte UseActionDetour(IntPtr actionManager, byte actionType, uint actionId, long targetObjectId, uint param, uint useType, int pvp, IntPtr a8)
+        // Detour used mainly for processing draw-when-casting
+        // When applicable, drawing is triggered immediately
+        private static byte UseActionDetour(IntPtr actionManager, 
+            byte actionType, uint actionId, long targetObjectId, uint param, uint useType, int pvp, IntPtr a8)
         {
-            var ret = UseActionHook!.Original(actionManager, actionType, actionId, targetObjectId, param, useType, pvp, a8);
+            var ret = UseActionHook!.Original(actionManager, 
+                actionType, actionId, targetObjectId, param, useType, pvp, a8);
+
+            try
+            {
+                LogUserDebug($"UseAction => actionType={actionType}, " +
+                    $"actionId={actionId}, targetId={targetObjectId:X}");
 #if DEBUG
-            PluginLog.Debug($"** UseAction: actionType={actionType}, actionId={actionId}, " +
-                $"targetId={targetObjectId:X}, param={param}, useType={useType}, pvp={pvp}, a8={a8:X}; ret={ret}");
+                LogDebug($"** UseAction: param={param}, useType={useType}, pvp={pvp}, a8={a8:X}; " +
+                    $"ret={ret}; CurrentSeq={ActionManagerHelper.CurrentSeq}");
 #endif
-            if (!Plugin.DrawWhenCasting) return ret;
+                if (!DrawWhenCasting) return ret;
 
-            if (ret == 0)
-            {
-#if DEBUG
-                PluginLog.Debug($"*** UseAction: NO draw-when-casting on useType={useType} && ret={ret}");
-#endif
-                return ret;
-            }
-#if DEBUG
-            PluginLog.Debug($"*** UseAction: Triggering Draw-when-casting on useType={useType} && ret={ret}");
-            PluginLog.Debug($"**** CurrentSeq={ActionManagerHelper.CurrentSeq}"); 
-#endif
-
-            var castActionId = ActionManagerHelper.CastingActionId;
-            var castTargetId = ActionManagerHelper.CastTargetObjectId;
-            Plugin.LogUserDebug($"UseAction => Triggering DrawWhenCasting, " +
-                $"CastingActionId={ActionManagerHelper.CastingActionId}, " +
-                $"CastTargetObjectId={ActionManagerHelper.CastTargetObjectId}");
-
-            if (!Plugin.IsPlayerLoaded || !ShouldProcessAction(actionType, actionId)) return ret;
-            if (!ProcessInitialStepInSend(actionId, out var originalData)) return ret;
-            if (originalData == null) return ret;
-
-            var target = new Lazy<GameObject?>(() => Plugin.ObejctTable.SearchById(castTargetId));
-
-            // Process drawing directly on triggered
-
-            // pet/pet-like
-            bool replacedActions = false;
-            if (CheckPetLikeActionsOverriding(originalData, castTargetId, target, out var petLikeSeqInfos)
-                && petLikeSeqInfos != null)
-            {
-                replacedActions = true;
-                foreach (var info in petLikeSeqInfos)
-                    EffectRangeDrawing.AddEffectRangeToDraw(
-                        ActionManagerHelper.CurrentSeq, DrawTrigger.Casting,
-                        info.EffectRangeData, info.OriginPosition,
-                        info.TargetPosition, info.ActorRotation);
-            }
-            if (CheckPetActionsOverriding(originalData, castTargetId, target, out var petSeqInfos)
-                && petSeqInfos != null)
-            {
-                replacedActions = true;
-                foreach (var info in petSeqInfos)
-                    EffectRangeDrawing.AddEffectRangeToDraw(
-                        ActionManagerHelper.CurrentSeq, DrawTrigger.Casting,
-                        info.EffectRangeData, info.OriginPosition,
-                        info.TargetPosition, info.ActorRotation);
-            }
-            if (replacedActions) return ret;
-
-            // Usual player actions
-            var overridenDataSet = CheckEffectRangeDataOverriding(originalData);
-            foreach (var data in overridenDataSet)
-            {
-                if (!ShouldDrawForEffectRange(data)) continue;
-                if (!ShouldDrawForHarmfulness(data)) continue;
-                if (data.Range == 0)
-                    EffectRangeDrawing.AddEffectRangeToDraw(
-                        ActionManagerHelper.CurrentSeq, DrawTrigger.Casting,
-                        data, Plugin.ClientState.LocalPlayer!.Position,
-                        Plugin.ClientState.LocalPlayer!.Position,
-                        Plugin.ClientState.LocalPlayer!.Rotation);
-                else
+                if (!ActionManagerHelper.IsCasting)
                 {
-                    if (target.Value != null)
-                        EffectRangeDrawing.AddEffectRangeToDraw(
-                            ActionManagerHelper.CurrentSeq, DrawTrigger.Casting,
-                            data, Plugin.ClientState.LocalPlayer!.Position,
-                            target.Value.Position, 
-                            Plugin.ClientState.LocalPlayer!.Rotation);
-                    else PluginLog.Error($"Cannot find valid target of id {castTargetId:X} for action {castActionId}");
+                    LogUserDebug($"---Skip: not casting");
+                    return ret;
                 }
+
+                if (ret == 0)
+                {
+                    LogUserDebug($"---Skip: not drawing on useType={useType} && ret={ret}");
+                    return ret;
+                }
+
+                var castActionId = ActionManagerHelper.CastingActionId;
+
+                if (!ShouldProcessAction(actionType, castActionId))
+                    return ret;
+
+                var actionIdsToDraw = new List<uint> { castActionId };
+                if (ActionData.TryGetActionWithAdditionalEffects(
+                    castActionId, out var additionals))
+                    actionIdsToDraw.AddRange(additionals);
+
+                foreach (var a in actionIdsToDraw)
+                {
+                    var erdata = EffectRangeDataManager.NewData(a);
+
+                    if (erdata == null)
+                    {
+                        LogError($"Cannot get data for action#{a}");
+                        continue;
+                    }
+
+                    if (!ShouldDrawForActionCategory(erdata.Category, true))
+                    {
+                        LogUserDebug($"---Skip action#{erdata.ActionId}: " +
+                            $"Not drawing for actions of category {erdata.Category}");
+                        continue;
+                    }
+
+                    erdata = EffectRangeDataManager.CustomiseEffectRangeData(erdata);
+                    if (!CheckShouldDrawPostCustomisation(erdata)) continue;
+
+                    var seq = ActionManagerHelper.CurrentSeq;
+                    float rotation = ActionManagerHelper.CastRotation;
+
+                    if (erdata.IsGTAction)
+                    {
+                        var targetPos = new Vector3(
+                            ActionManagerHelper.CastTargetPosX,
+                            ActionManagerHelper.CastTargetPosY,
+                            ActionManagerHelper.CastTargetPosZ);
+                        LogUserDebug($"UseAction => Triggering draw-when-casting, " +
+                            $"CastingActionId={castActionId}, GT action, " +
+                            $"CastPosition={targetPos}, CastRotation={rotation}");
+                        LogUserDebug($"---Adding DrawData for action #{castActionId} " +
+                            $"from player, using cast position info");
+                        EffectRangeDrawing.AddEffectRangeToDraw(seq,
+                            DrawTrigger.Casting, erdata, LocalPlayer!.Position,
+                            targetPos, rotation);
+                    }
+                    else
+                    {
+                        var castTargetId = ActionManagerHelper.CastTargetObjectId;
+                        LogUserDebug($"UseAction => Triggering draw-when-casting, " +
+                            $"CastingActionId={castActionId}, " +
+                            $"CastTargetObjectId={castTargetId}, CastRotation={rotation}");
+
+                        GameObject? target = null;
+                        if (castTargetId == LocalPlayer!.ObjectId)
+                            target = LocalPlayer;
+                        else if (castTargetId != 0 
+                            && castTargetId != InvalidGameObjectId)
+                            target = ObejctTable.SearchById(castTargetId);
+
+                        if (target != null)
+                        {
+                            LogUserDebug($"---Adding DrawData for action #{castActionId} " +
+                                $"from player, using cast position info");
+                            // We do not have GT actions here
+                            EffectRangeDrawing.AddEffectRangeToDraw(
+                                ActionManagerHelper.CurrentSeq, DrawTrigger.Casting, 
+                                erdata, LocalPlayer!.Position, target.Position, rotation);
+                        }
+                        else LogUserDebug($"---Failed: Target #{castTargetId:X} not found");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                LogError($"{e}");
             }
 
             return ret;
         }
 
         
-        private delegate void ReceiveActionEffectDelegate(int sourceObjectId, IntPtr sourceActor, IntPtr position, IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail);
+        private delegate void ReceiveActionEffectDelegate(int sourceObjectId, IntPtr sourceActor, 
+            IntPtr position, IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail);
         private static readonly Hook<ReceiveActionEffectDelegate>? ReceiveActionEffectHook;
-        private static void ReceiveActionEffectDetour(int sourceObjectId, IntPtr sourceActor, IntPtr position, IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail)
+
+        private static void ReceiveActionEffectDetour(int sourceObjectId, IntPtr sourceActor, 
+            IntPtr position, IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail)
         {
-            ReceiveActionEffectHook!.Original(sourceObjectId, sourceActor, position, effectHeader, effectArray, effectTrail);
+            ReceiveActionEffectHook!.Original(sourceObjectId, sourceActor, 
+                position, effectHeader, effectArray, effectTrail);
+
+            try
+            {
 #if DEBUG
-            PluginLog.Debug($"** ReceiveActionEffect: src={sourceObjectId:X}, " +
-                $"pos={(Vector3)Marshal.PtrToStructure<FVector3>(position)}; " +
-                $"AcMgr: CurrentSeq={ActionManagerHelper.CurrentSeq}, " +
-                $"LastRecSeq={ActionManagerHelper.LastRecievedSeq}");
+                LogDebug($"** ReceiveActionEffect: src={sourceObjectId:X}, " +
+                    $"pos={(Vector3)Marshal.PtrToStructure<Vector3Struct>(position)}; " +
+                    $"AcMgr: CurrentSeq={ActionManagerHelper.CurrentSeq}, " +
+                    $"LastRecSeq={ActionManagerHelper.LastRecievedSeq}");
 #endif
 
-            if (!Plugin.IsPlayerLoaded) return;
-
-            if (effectHeader == IntPtr.Zero)
-            {
-                PluginLog.Error("ReceiveActionEffect: effectHeader ptr is zero");
-                return;
-            }
-            var header = Marshal.PtrToStructure<ActionEffectHeader>(effectHeader);
-            Plugin.LogUserDebug($"ReceiveActionEffect => " +
-                $"source={sourceObjectId:X}, target={header.TargetObjectId:X}, " +
-                $"action={header.ActionId}, seq={header.Sequence}");
+                if (effectHeader == IntPtr.Zero)
+                {
+                    LogError("ReceiveActionEffect: effectHeader ptr is zero");
+                    return;
+                }
+                var header = Marshal.PtrToStructure<ActionEffectHeader>(effectHeader);
+                LogUserDebug($"ReceiveActionEffect => " +
+                    $"source={sourceObjectId:X}, target={header.TargetObjectId:X}, " +
+                    $"action={header.ActionId}, seq={header.Sequence}");
 #if DEBUG
-            PluginLog.Debug($"** ---effectHeader: target={header.TargetObjectId:X}, " +
-                $"action={header.ActionId}, unkObjId={header.UnkObjectId:X}, " +
-                $"seq={header.Sequence}, unk={header.Unk_1A:X}");
+                LogDebug($"** ---effectHeader: target={header.TargetObjectId:X}, " +
+                    $"action={header.ActionId}, unkObjId={header.UnkObjectId:X}, " +
+                    $"seq={header.Sequence}, unk={header.Unk_1A:X}");
 #endif
 
-            if (header.Sequence == 0 && sourceObjectId == Plugin.BuddyList.PetBuddy?.GameObject?.ObjectId)
-            {
-                if (recordedPetLikeActionEffectToWait.TryGetValue(header.ActionId, out var petLikeSeqInfos))
+                if (header.Sequence > 0)
                 {
-                    Plugin.LogUserDebug($"---Matched recorded pet-like action #{header.ActionId}");
-                    foreach (var info in petLikeSeqInfos)
+                    lastReceivedMainSeq = header.Sequence;
+                    if (skippedSeqs.Contains(header.Sequence))
                     {
-                        EffectRangeDrawing.AddEffectRangeToDraw(
-                            ActionManagerHelper.CurrentSeq, DrawTrigger.Used,
-                            info.EffectRangeData, info.OriginPosition,
-                            info.EffectRangeData.IsGTAction 
-                                ? Marshal.PtrToStructure<FVector3>(position) 
-                                : info.TargetPosition,
-                            info.ActorRotation);
+                        LogUserDebug($"---Skip: not processing Seq#{header.Sequence}");
+                        return;
                     }
-                    recordedPetLikeActionEffectToWait.Remove(header.ActionId);
-                    recordedActionSequence.Remove(petLikeSeqInfos.ActionSequence);
                 }
-                if (Plugin.Config.DrawOwnPets && recordedPetActionEffectToWait.TryGetValue(header.ActionId, out var petSeqInfos))
+
+                if (!IsPlayerLoaded)
                 {
-                    Plugin.LogUserDebug($"---Matched recorded pet action #{header.ActionId}");
-                    foreach (var info in petSeqInfos)
+                    LogUserDebug($"---Skip: PC not loaded");
+                    return;
+                }
+
+                if (sourceObjectId != LocalPlayer!.ObjectId
+                    && (!PetWatcher.HasPetPresent 
+                        || PetWatcher.GetPetObjectId() != sourceObjectId))
+                {
+                    LogUserDebug($"---Skip: Effect triggered by others");
+                    return;
+                }
+
+                var erdata = EffectRangeDataManager.NewData(header.ActionId);
+                if (erdata == null)
+                {
+                    LogError($"Cannot get data for action#{header.ActionId}");
+                    return;
+                }
+
+                // Some additional effects (e.g. #29706 additional effect for Pneuma pvp)
+                // have ActionCategory=0
+                if (!ShouldDrawForActionCategory(erdata.Category, true))
+                {
+                    LogUserDebug($"---Skip action#{erdata.ActionId}: " +
+                        $"Not drawing for actions of category {erdata.Category}");
+                    return;
+                }
+
+                erdata = EffectRangeDataManager.CustomiseEffectRangeData(erdata);
+
+                if (!CheckShouldDrawPostCustomisation(erdata)) return;
+
+                var mainSeq = header.Sequence > 0
+                        ? header.Sequence : lastReceivedMainSeq;
+
+                if (sourceObjectId == LocalPlayer!.ObjectId)
+                {
+                    // Source is pc
+
+                    // TODO: config on/off: auto triggered effects
+                    //  (such as effects on time elapsed, receiving damage, ...)
+                    bool drawForAuto = true; // placeholder
+
+                    ActionSeqInfo? seqInfo = null;
+
+                    // For additional effects, received data always has seq=0
+                    // Match seq using predefined mapping and some heuristics
+                    if (!ActionData.ShouldNotUseCachedSeq(header.ActionId))
+                        seqInfo = FindRecordedSeqInfo(header.Sequence, header.ActionId);
+
+                    if (seqInfo != null)
                     {
-                        EffectRangeDrawing.AddEffectRangeToDraw(
-                            ActionManagerHelper.CurrentSeq, DrawTrigger.Used,
-                            info.EffectRangeData, info.OriginPosition,
-                            info.EffectRangeData.IsGTAction 
-                                ? Marshal.PtrToStructure<FVector3>(position) 
-                                : info.TargetPosition,
-                            info.ActorRotation);
+                        // Additional effect may have different target (e.g. self vs targeted enemy)
+                        Vector3 targetPos = erdata.IsGTAction
+                            ? Marshal.PtrToStructure<Vector3Struct>(position)
+                            : (header.TargetObjectId == LocalPlayer.ObjectId
+                                ? seqInfo.SeqSnapshot.PlayerPosition
+                                : seqInfo.SeqSnapshot.TargetPosition);
+
+                        LogUserDebug($"---Adding DrawData for action #{header.ActionId} " +
+                            $"from player, using SeqSnapshot#{seqInfo.Seq}");
+                        EffectRangeDrawing.AddEffectRangeToDraw(seqInfo.Seq,
+                            DrawTrigger.Used, erdata, seqInfo.SeqSnapshot.PlayerPosition,
+                            targetPos, seqInfo.SeqSnapshot.PlayerRotation);
                     }
-                    recordedPetLikeActionEffectToWait.Remove(header.ActionId);
-                    recordedActionSequence.Remove(petSeqInfos.ActionSequence);
+                    else if (drawForAuto)
+                    {
+                        LogUserDebug($"---Adding DrawData for action #{header.ActionId} " +
+                            $"from player, using current position info");
+
+                        if (erdata.IsGTAction)
+                            EffectRangeDrawing.AddEffectRangeToDraw(mainSeq,
+                                DrawTrigger.Used, erdata, LocalPlayer!.Position,
+                                Marshal.PtrToStructure<Vector3Struct>(position),
+                                LocalPlayer!.Rotation);
+                        else
+                        {
+                            GameObject? target = null;
+                            if (header.TargetObjectId == sourceObjectId) // Self-targeting
+                                target = LocalPlayer;
+                            else if (header.TargetObjectId != 0
+                                && header.TargetObjectId != InvalidGameObjectId)
+                                target = ObejctTable.SearchById((uint)header.TargetObjectId);
+
+                            if (target != null)
+                            {
+                                EffectRangeDrawing.AddEffectRangeToDraw(mainSeq,
+                                    DrawTrigger.Used, erdata, LocalPlayer!.Position,
+                                    target.Position, LocalPlayer!.Rotation);
+                            }
+                            else LogUserDebug($"---Failed: Target #{header.TargetObjectId:X} not found");
+                        }
+                    }
+                    else LogUserDebug($"---Skip: Not drawing for auto-triggered action #{header.ActionId}");
+                }
+                else
+                {
+                    // Source may be player's pet/pet-like object
+
+                    // NOTE: Always use current position infos here.
+                    // Due to potential delay, info snapshot at the time
+                    //  player action is used is not accurate for pet actions as well.
+                    // E.g., when pet is moving, any other action will be delayed;
+                    //  once the pet is settled on a location, the character positions
+                    //  are snapshot and pet action is processed based on this snapshot;
+                    // but this also means the snapshot produced when player used
+                    //  the "parent" action is already out-of-date.
+
+                    // Just ignore if the pet is no longer present at this point (e.g. due to delay).
+                    // Not very common as the game already defers removing pet objects
+                    //  possibly to account for delays
+                    if (PetWatcher.HasPetPresent
+                        && PetWatcher.GetPetObjectId() == sourceObjectId)
+                    {
+                        if (PetWatcher.IsCurrentPetACNPet() && !Config.DrawACNPets)
+                        {
+                            LogUserDebug($"---Skip: Drawing for action#{header.ActionId} " +
+                                "from ACN/SMN/SCH pets configured OFF");
+                            return;
+                        }
+                        if (PetWatcher.IsCurrentPetNonACNNamedPet()
+                            && !Config.DrawSummonedCompanions)
+                        {
+                            LogUserDebug($"---Skip: Drawing for action#{header.ActionId} " +
+                                "from summoned companions of non-ACN based jobs configured OFF");
+                            return;
+                        }
+                        if (PetWatcher.IsCurrentPetNameless()
+                            && !Config.DrawGT)
+                        {
+                            // Assuming all nameless pets are ground placed objects ...
+                            LogUserDebug($"---Skip: Drawing for action#{header.ActionId} " +
+                                "from possibly ground placed object configured OFF");
+                            return;
+                        }
+
+                        // TODO: Check if the effect is auto-triggered if it is from placed object?
+                        // (Assuming placed obj does not move, cached seq snapshot can be used.)
+                        // (Configurable opt)
+
+                        LogUserDebug($"---Add DrawData for action #{header.ActionId} " +
+                            $"from pet / pet-like object #{sourceObjectId:X}, using current position info");
+
+                        if (erdata.IsGTAction)
+                            EffectRangeDrawing.AddEffectRangeToDraw(mainSeq,
+                                DrawTrigger.Used, erdata, LocalPlayer!.Position,
+                                Marshal.PtrToStructure<Vector3Struct>(position),
+                                LocalPlayer!.Rotation);
+                        else
+                        {
+                            GameObject? target = null;
+                            if (header.TargetObjectId == sourceObjectId) // Pet self-targeting
+                                target = PetWatcher.GetPet();
+                            else if (header.TargetObjectId == LocalPlayer.ObjectId)
+                                target = LocalPlayer;
+                            else if (header.TargetObjectId != 0
+                                && header.TargetObjectId != InvalidGameObjectId)
+                                target = ObejctTable.SearchById((uint)header.TargetObjectId);
+
+                            if (target != null)
+                            {
+                                var source = PetWatcher.GetPet();
+                                EffectRangeDrawing.AddEffectRangeToDraw(mainSeq,
+                                    DrawTrigger.Used, erdata,
+                                    PetWatcher.GetPetPosition(),
+                                    target.Position, PetWatcher.GetPetRotation());
+                            }
+                            else LogUserDebug($"---Failed: Target #{header.TargetObjectId:X} not found");
+                        }
+                    }
+                    else LogUserDebug($"---Skip: source actor #{sourceObjectId:X} not matching pc or pet");
                 }
             }
-            else if (recordedActionSequence.TryGetValue(header.Sequence, out var seqInfos))
+            catch (Exception e)
             {
-                if (seqInfos.Count > 0) Plugin.LogUserDebug($"---Matched recorded action #{header.ActionId} of seq {header.Sequence}");
-                foreach (var info in seqInfos)
-                {
-                    EffectRangeDrawing.AddEffectRangeToDraw(
-                            ActionManagerHelper.CurrentSeq, DrawTrigger.Used,
-                        info.EffectRangeData, info.OriginPosition,
-                            info.EffectRangeData.IsGTAction 
-                                ? Marshal.PtrToStructure<FVector3>(position) 
-                                : info.TargetPosition,
-                            info.ActorRotation);
-                }
-                recordedActionSequence.Remove(header.Sequence);
+                LogError($"{e}");
             }
         }
 
-        private static void ClearActionSequenceInfoCache()
-        {
-            recordedActionSequence.Clear();
-            recordedPetActionEffectToWait.Clear();
-            recordedPetLikeActionEffectToWait.Clear();
-        }
 
-
-        private static bool ShouldDrawForActionType(uint actionType) 
-            => actionType == 0x1 || actionType == 0xE; // pve 0x1, pvp 0xE
-
-        private static bool ShouldDrawForAction(uint actionId)
-            => !ActionData.IsActionBlacklisted(actionId);
+        #region Checks
 
         private static bool ShouldProcessAction(byte actionType, uint actionId)
-            => ShouldDrawForActionType(actionType) && ShouldDrawForAction(actionId);
+        {
+            if (!IsPlayerLoaded)
+            {
+                LogUserDebug($"---Skip: PC not loaded");
+                return false;
+            }
+            if (!ShouldProcessActionType(actionType) 
+                || !ShouldProcessAction(actionId))
+            {
+                LogUserDebug($"---Skip: Not processing " +
+                    $"action#{actionId}, ActionType={actionType}");
+                return false;
+            }
+            return true;
+        }
 
-        private static bool ShouldDrawForActionCategory(ActionCategory actionCategory)
+        private static bool ShouldProcessActionType(uint actionType) 
+            => actionType == 0x1 || actionType == 0xE; // pve 0x1, pvp 0xE
+
+        private static bool ShouldProcessAction(uint actionId)
+            => !ActionData.IsActionBlacklisted(actionId);
+
+
+        private static bool ShouldDrawForActionCategory(
+            Enums.ActionCategory actionCategory, bool allowCateogry0 = false)
             => ActionData.IsCombatActionCategory(actionCategory)
-            || Plugin.Config.DrawEx && ActionData.IsSpecialOrArtilleryActionCategory(actionCategory);
+            || Config.DrawEx && ActionData.IsSpecialOrArtilleryActionCategory(actionCategory)
+            || allowCateogry0 && actionCategory == 0;
 
         // Only check for circle and donut in Large EffectRange check
         private static bool ShouldDrawForEffectRange(EffectRangeData data)
             => data.EffectRange > 0 
             && (!(data is CircleAoEEffectRangeData || data is DonutAoEEffectRangeData) 
-                || Plugin.Config.LargeDrawOpt != 1 
-                || data.EffectRange < Plugin.Config.LargeThreshold);
+                || Config.LargeDrawOpt != 1 
+                || data.EffectRange < Config.LargeThreshold);
 
+        // Note: will not draw for `None` (=0)
         private static bool ShouldDrawForHarmfulness(EffectRangeData data)
-            => ActionData.IsHarmfulAction(data) && Plugin.Config.DrawHarmful
-            || ActionData.IsBeneficialAction(data) && Plugin.Config.DrawBeneficial;
+            => EffectRangeDataManager.IsHarmfulAction(data) && Config.DrawHarmful
+            || EffectRangeDataManager.IsBeneficialAction(data) && Config.DrawBeneficial;
 
 
-        #region Send Helpers
-
-        // Return true if can continue to process
-        private static bool ProcessInitialStepInSend(uint actionId, out EffectRangeData? data)
+        private static bool CheckShouldDrawPostCustomisation(EffectRangeData data)
         {
-            data = ActionData.GetActionEffectRangeDataRaw(actionId);
-            if (data == null)
+            if (!ShouldDrawForEffectRange(data))
             {
-                PluginLog.Error($"Cannot get original data for action {actionId}");
+                LogUserDebug($"---Skip action #{data.ActionId}: " +
+                    $"Not drawing for actions of effect range = {data.EffectRange}");
                 return false;
             }
-#if DEBUG
-            PluginLog.Debug($"** ---Created original data: {data}");
-#endif
-            return ShouldDrawForActionCategory(data.Category);
-        }
 
-        // Check pet/pet-like actions
-        // Note: Sequence is always 0 in ReceiveActionEffect for these actions,
-        //  but we'll record the sequence of the player action for tracking purpose
-        // Return true if mapped to corresponding pet/pet-like actions
-        private static bool CheckPetAndPetLikeInSend(
-            EffectRangeData originalData, ushort sequence, 
-            long targetObjectId, Lazy<GameObject?> target)
-        {
-            bool actionReplaced = false;
-            if (Plugin.BuddyList.PetBuddyPresent)
+            if (!ShouldDrawForHarmfulness(data))
             {
-                actionReplaced |= CheckPetLikeActionsOverriding(
-                    originalData, targetObjectId, target, out var petLikeSeqInfos);
-                if (petLikeSeqInfos != null)
-                {
-                    foreach (var seqInfo in petLikeSeqInfos)
-                    {
-                        recordedPetLikeActionEffectToWait[seqInfo.ActionId] = new(sequence);
-                        recordedPetLikeActionEffectToWait[seqInfo.ActionId].Add(seqInfo);
-                    }
-                }
-
-                if (!Plugin.Config.DrawOwnPets) return actionReplaced;
-                actionReplaced |= CheckPetActionsOverriding(
-                    originalData, targetObjectId, target, out var petSeqInfos);
-                if (petSeqInfos != null)
-                {
-                    foreach (var seqInfo in petSeqInfos)
-                    {
-                        recordedPetActionEffectToWait[seqInfo.ActionId] = new(sequence);
-                        recordedPetActionEffectToWait[seqInfo.ActionId].Add(seqInfo);
-                    }
-                }
+                LogUserDebug($"---Skip action #{data.ActionId}: " +
+                    $"Not drawing for harmful/beneficial actions = {data.Harmfulness}");
+                return false;
             }
-            return actionReplaced;
-        }
 
-        private static bool CheckPetLikeActionsOverriding(
-            EffectRangeData originalData, long targetObjectId,
-            Lazy<GameObject?> target, out List<ActionSequenceInfo>? seqInfos)
-        {
-            bool actionReplaced = false;
-            seqInfos = null;
-            var pet = Plugin.BuddyList.PetBuddy?.GameObject;
-            if (pet != null)
-            {
-#if DEBUG
-                PluginLog.Debug($"** ---check pet-like action: pet objId={pet.ObjectId:X}, pos={pet.Position}");
-#endif
-                if (ActionData.CheckPetLikeAction(
-                    originalData, out var petLikeActionEffectRangeDataSet)
-                    && petLikeActionEffectRangeDataSet != null)
-                {
-                    actionReplaced = true;
-                    seqInfos = new();
-                    Plugin.LogUserDebug($"---Mapping action#{originalData.ActionId} to pet-like actions");
-                    foreach (var data in petLikeActionEffectRangeDataSet)
-                    {
-                        if (data == null) continue;
-                        if (!ShouldDrawForEffectRange(data)) continue;
-                        if (!ShouldDrawForHarmfulness(data)) continue;
-                        if (data.Range == 0)
-                            seqInfos.Add(new(data,
-                                pet.Position, pet.Position, pet.Rotation, true));
-                        else
-                        {
-                            if (target.Value != null)
-                                seqInfos.Add(new(data, pet.Position,
-                                    target.Value.Position, pet.Rotation, true));
-                            else PluginLog.Error($"Cannot find valid target of id {targetObjectId:X} for action {originalData.ActionId}");
-                        }
-                        Plugin.LogUserDebug($"----Possible pet-like action: {data}");
-                    }
-                }
-            }
-            return actionReplaced;
-        }
-
-        private static bool CheckPetActionsOverriding(
-            EffectRangeData originalData, long targetObjectId,
-            Lazy<GameObject?> target, out List<ActionSequenceInfo>? seqInfos)
-        {
-            bool actionReplaced = false;
-            seqInfos = null;
-            var pet = Plugin.BuddyList.PetBuddy?.GameObject;
-            if (pet != null)
-            {
-#if DEBUG
-                PluginLog.Debug($"** ---check pet action: pet objId={pet.ObjectId:X}, pos={pet.Position}");
-#endif
-                if (Plugin.Config.DrawOwnPets
-                    && ActionData.CheckPetAction(originalData,
-                        out var petActionEffectRangeDataSet)
-                    && petActionEffectRangeDataSet != null)
-                {
-                    actionReplaced = true;
-                    seqInfos = new();
-                    Plugin.LogUserDebug($"---Mapping action#{originalData.ActionId} to pet actions");
-                    foreach (var data in petActionEffectRangeDataSet)
-                    {
-                        if (data == null) continue;
-                        if (!ShouldDrawForEffectRange(data)) continue;
-                        if (!ShouldDrawForHarmfulness(data)) continue;
-                        if (data.Range == 0)
-                            seqInfos.Add(new(data,
-                                pet.Position, pet.Position, pet.Rotation, true));
-                        else
-                        {
-                            if (target.Value != null)
-                                seqInfos.Add(new(data, pet.Position,
-                                    target.Value.Position, pet.Rotation, true));
-                            else PluginLog.Error($"Cannot find valid target of id {targetObjectId:X} for action {originalData.ActionId}");
-                        }
-                        Plugin.LogUserDebug($"----Possible pet action: {data}");
-                    }
-                }
-            }
-            return actionReplaced;
-        }
-
-        private static List<EffectRangeData> CheckEffectRangeDataOverriding(
-            EffectRangeData originalData)
-        {
-            var updated = ActionData.CheckEffectRangeDataOverriding(originalData);
-            Plugin.LogUserDebug($"---Action#{originalData.ActionId} data overriden:\n" +
-                $"{string.Join('\n', updated.ConvertAll(data => data.ToString()))}");
-            return updated;
+            return true;
         }
 
         #endregion
 
+
+        private static ActionSeqInfo? FindRecordedSeqInfo(
+            ushort receivedSeq, uint receivedActionId)
+        {
+            foreach (var seqInfo in playerActionSeqs)
+            {
+                if (IsSeqExpired(seqInfo)) continue;
+                if (receivedSeq > 0) // Primary effects from player actions
+                {
+                    if (receivedSeq == seqInfo.Seq)
+                    {
+                        LogUserDebug($"---* Recorded sequence matched");
+                        return seqInfo;
+                    }
+                }
+                else if (ActionData.AreRelatedPlayerTriggeredActions(
+                    seqInfo.ActionId, receivedActionId))
+                {
+                    LogUserDebug($"---* Related recorded sequence found");
+                    return seqInfo;
+                }
+            }
+            LogUserDebug($"---* No recorded sequence matched");
+            return null;
+        }
+
+        private static void ClearSeqRecordCache()
+        {
+            playerActionSeqs.Clear();
+            skippedSeqs.Clear();
+        }
+
+        private static bool IsSeqExpired(ActionSeqInfo info)
+            => info.ElapsedSeconds > SeqExpiry;
+
         private static void OnClassJobChangedClearCache(uint classJobId)
-            => ClearActionSequenceInfoCache();
+            => ClearSeqRecordCache();
 
         private static void OnTerritoryChangedClearCache(object? sender, ushort terr)
-            => ClearActionSequenceInfoCache();
+            => ClearSeqRecordCache();
 
 
         static ActionWatcher()
         {
-            UseActionHook ??= Hook<UseActionDelegate>.FromAddress(ActionManagerHelper.FpUseAction, UseActionDetour);
-            UseActionLocationHook ??= Hook<UseActionLocationDelegate>.FromAddress(ActionManagerHelper.FpUseActionLocation, UseActionLocationDetour);
-            ReceiveActionEffectHook ??= Hook<ReceiveActionEffectDelegate>.FromAddress(Plugin.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B 8D F0 03 00 00"), ReceiveActionEffectDetour);
-            SendActionHook ??= Hook<SendActionDelegate>.FromAddress(Plugin.SigScanner.ScanText("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? F3 0F 10 3D ?? ?? ?? ?? 48 8D 4D BF"), SendActionDetour);
+            UseActionHook ??= Hook<UseActionDelegate>.FromAddress(
+                ActionManagerHelper.FpUseAction, UseActionDetour);
+            UseActionLocationHook ??= Hook<UseActionLocationDelegate>.FromAddress(
+                ActionManagerHelper.FpUseActionLocation, UseActionLocationDetour);
+            ReceiveActionEffectHook ??= Hook<ReceiveActionEffectDelegate>.FromAddress(
+                SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B 8D F0 03 00 00"), 
+                ReceiveActionEffectDetour);
+            SendActionHook ??= Hook<SendActionDelegate>.FromAddress(
+                SigScanner.ScanText("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? F3 0F 10 3D ?? ?? ?? ?? 48 8D 4D BF"), 
+                SendActionDetour);
 
-            PluginLog.Information("ActionWatcher init:\n" +
+            LogInformation("ActionWatcher init:\n" +
                 $"\tUseActionHook @{UseActionHook?.Address ?? IntPtr.Zero:X}\n" +
                 $"\tUseActionLoactionHook @{UseActionLocationHook?.Address ?? IntPtr.Zero:X}\n" +
                 $"\tReceiveActionEffectHook @{ReceiveActionEffectHook?.Address ?? IntPtr.Zero:X}\n" +
@@ -490,7 +636,7 @@ namespace ActionEffectRange.Actions
             SendActionHook?.Enable();
             ReceiveActionEffectHook?.Enable();
 
-            Plugin.ClientState.TerritoryChanged += OnTerritoryChangedClearCache;
+            ClientState.TerritoryChanged += OnTerritoryChangedClearCache;
             ClassJobWatcher.ClassJobChanged += OnClassJobChangedClearCache;
         }
 
@@ -501,7 +647,7 @@ namespace ActionEffectRange.Actions
             SendActionHook?.Disable();
             ReceiveActionEffectHook?.Disable();
 
-            Plugin.ClientState.TerritoryChanged -= OnTerritoryChangedClearCache;
+            ClientState.TerritoryChanged -= OnTerritoryChangedClearCache;
             ClassJobWatcher.ClassJobChanged -= OnClassJobChangedClearCache;
         }
 
@@ -522,10 +668,13 @@ namespace ActionEffectRange.Actions
     {
         [FieldOffset(0x0)] public long TargetObjectId;
         [FieldOffset(0x8)] public uint ActionId;
-        // Unk; but have some value keep accumulating here
+        // 0x14 Unk; but have some value keep accumulating here
         [FieldOffset(0x14)] public uint UnkObjectId;
-        [FieldOffset(0x18)] public ushort Sequence; // Corresponds exactly to the sequence of the action used; AA, pet's action effect etc. will be 0 here
-        [FieldOffset(0x1A)] public ushort Unk_1A;   // Seems related to SendAction's arg a5, but not always the same value
+        // 0x18 Corresponds exactly to the sequence of the action used;
+        //      AA, pet's action effect etc. will be 0 here
+        [FieldOffset(0x18)] public ushort Sequence;
+        // 0x1A Seems related to SendAction's arg a5, but not always the same value
+        [FieldOffset(0x1A)] public ushort Unk_1A;
         // rest??
     }
 }

@@ -1,9 +1,8 @@
-﻿using ActionEffectRange.Actions;
+﻿using ActionEffectRange.Actions.Data;
 using ActionEffectRange.Actions.Data.Template;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using ImGuiNET;
-using System.Numerics;
 
 namespace ActionEffectRange.UI
 {
@@ -52,11 +51,13 @@ namespace ActionEffectRange.UI
                 "regarding cone-shaped AoEs, should they exist:");
             ImGuiExt.BulletTextWrappedWithHelpMarker("Central Angle",
                 "Central Angle: Sets the central angle of the sector drawn for the Cone AoE.\n\n" +
-                "For example, set the Central Angle for an action to 90 " +
-                "if you want the plugin to draw a sector of 90 degrees when you used that action.");
+                "For example, set the Central Angle for an action to 90 if you want " +
+                "the plugin to draw a sector of 90 degrees when you used that action.");
             ImGuiExt.BulletTextWrappedWithHelpMarker("Rotation Offset",
-                "Rotation Offset: Adds certain degrees to the calculated rotation (that is, direction) of the sector.\n\n" +
-                "For example, set it to 180 so that the sector will be drawn to the opposite direction.\n" +
+                "Rotation Offset: Adds certain degrees to the calculated rotation " +
+                "(that is, direction) of the sector.\n\n" +
+                "For example, set it to 180 so that the sector will be drawn " +
+                "to the opposite direction.\n" +
                 "(You probably won't need this though.)");
             ImGuiExt.MultiTextWrapped(
                 "Both Central Angle and Rotation Offset are specified in degrees.",
@@ -73,10 +74,12 @@ namespace ActionEffectRange.UI
                 ImGui.Text("Editing for action: " +
                     ActionDataInterfacing.GetActionDescription(selectedMatchedActionRow));
                 ImGui.Indent();
-                ImGuiExt.InputIntWithTooltip("Central angle: ", ref centralAngleDegInput, 
-                    1, 10, 0, 360, ImGuiInputTextFlags.None, 100, null);
-                ImGuiExt.InputIntWithTooltip("Rotation offset: ", ref rotationOffsetDegInput, 
-                    1, 10, 0, 360, ImGuiInputTextFlags.None, 100, null);
+                ImGuiExt.InputIntWithTooltip("Central angle: ", 
+                    ref centralAngleDegInput, 1, 10, 0, 360, 
+                    ImGuiInputTextFlags.None, 100, null);
+                ImGuiExt.InputIntWithTooltip("Rotation offset: ", 
+                    ref rotationOffsetDegInput, 1, 10, 0, 360, 
+                    ImGuiInputTextFlags.None, 100, null);
 
                 if (ImGuiExt.IconButton(1, FontAwesomeIcon.Plus, "Add to the list"))
                 {
