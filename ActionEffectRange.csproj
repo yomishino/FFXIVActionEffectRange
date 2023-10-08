@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Authors>yomishino</Authors>
-    <Version>2.0.0.0</Version>
+    <Version>2.0.1.0</Version>
     <Description>A FFXIV Dalamud plugin that provides a visual cue on the effect range of the AoE action just used.</Description>
     <PackageProjectUrl></PackageProjectUrl>
     <Configurations>Debug;Release;TestRelease</Configurations>
@@ -32,7 +32,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DalamudPackager" Version="2.1.10" />
+    <PackageReference Include="DalamudPackager" Version="2.1.12" />
     <Reference Include="Dalamud">
       <HintPath Condition="Exists('$(DalamudLibPath)')">$(DalamudLibPath)\Dalamud.dll</HintPath>
       <Private>false</Private>
@@ -74,5 +74,7 @@
       <Private>false</Private>
     </Reference>
   </ItemGroup>
+
+  <ProjectExtensions><VisualStudio><UserProperties actioneffectrange_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>
 
 </Project>

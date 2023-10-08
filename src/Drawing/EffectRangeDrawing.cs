@@ -1,11 +1,9 @@
 ﻿using ActionEffectRange.Actions.EffectRange;
 using ActionEffectRange.Drawing.Types;
 using ActionEffectRange.Drawing.Workers;
-using Dalamud.Interface;
-using Dalamud.Logging;
+using Dalamud.Interface.Utility;
 using ImGuiNET;
 using System.Collections.Generic;
-using System.Numerics;
 
 namespace ActionEffectRange.Drawing
 {
@@ -61,7 +59,7 @@ namespace ActionEffectRange.Drawing
             }
             catch (Exception e)
             {
-                LogError($"{e}");
+                PluginLog.Error($"{e}");
             }
             finally
             {

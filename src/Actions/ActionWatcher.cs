@@ -38,10 +38,10 @@ namespace ActionEffectRange.Actions
                 LogUserDebug($"SendAction => target={targetObjectId:X}, " +
                     $"action={actionId}, type={actionType}, seq={sequence}");
 #if DEBUG
-                LogDebug($"** SendAction: targetId={targetObjectId:X}, " +
+                PluginLog.Debug($"** SendAction: targetId={targetObjectId:X}, " +
                     $"actionType={actionType}, actionId={actionId}, seq={sequence}, " +
                     $"a5={a5:X}, a6={a6:X}, a7={a7:X}, a8={a8:X}, a9={a9:X}");
-                LogDebug($"** ---AcMgr: currentSeq{ActionManagerHelper.CurrentSeq}, " +
+                PluginLog.Debug($"** ---AcMgr: currentSeq{ActionManagerHelper.CurrentSeq}, " +
                     $"lastRecSeq={ActionManagerHelper.LastRecievedSeq}");
 #endif
                 lastSendActionSeq = sequence;
@@ -82,14 +82,14 @@ namespace ActionEffectRange.Actions
                     }
                     else
                     {
-                        LogError($"Cannot find valid target #{targetObjectId:X} for action#{actionId}");
+                        PluginLog.Error($"Cannot find valid target #{targetObjectId:X} for action#{actionId}");
                         return;
                     }
                 }
             } 
             catch (Exception e)
             {
-                LogError($"{e}");
+                PluginLog.Error($"{e}");
             }
         }
 
@@ -104,7 +104,7 @@ namespace ActionEffectRange.Actions
             try
             {
 #if DEBUG
-                LogDebug($"** UseActionLocation: actionType={actionType}, " +
+                PluginLog.Debug($"** UseActionLocation: actionType={actionType}, " +
                     $"actionId={actionId}, targetId={targetObjectId:X}, " +
                     $"loc={location:X} " +
                     $"=> {(Vector3)Marshal.PtrToStructure<Vector3Struct>(location)} " +
@@ -150,7 +150,7 @@ namespace ActionEffectRange.Actions
             }
             catch (Exception e)
             {
-                LogError($"{e}");
+                PluginLog.Error($"{e}");
             }
             return ret;
         }
@@ -174,7 +174,7 @@ namespace ActionEffectRange.Actions
                 LogUserDebug($"UseAction => actionType={actionType}, " +
                     $"actionId={actionId}, targetId={targetObjectId:X}");
 #if DEBUG
-                LogDebug($"** UseAction: param={param}, useType={useType}, pvp={pvp}, a8={a8:X}; " +
+                PluginLog.Debug($"** UseAction: param={param}, useType={useType}, pvp={pvp}, a8={a8:X}; " +
                     $"ret={ret}; CurrentSeq={ActionManagerHelper.CurrentSeq}");
 #endif
                 if (!DrawWhenCasting) return ret;
@@ -207,7 +207,7 @@ namespace ActionEffectRange.Actions
 
                     if (erdata == null)
                     {
-                        LogError($"Cannot get data for action#{a}");
+                        PluginLog.Error($"Cannot get data for action#{a}");
                         continue;
                     }
 
@@ -268,7 +268,7 @@ namespace ActionEffectRange.Actions
             }
             catch (Exception e)
             {
-                LogError($"{e}");
+                PluginLog.Error($"{e}");
             }
 
             return ret;
@@ -288,7 +288,7 @@ namespace ActionEffectRange.Actions
             try
             {
 #if DEBUG
-                LogDebug($"** ReceiveActionEffect: src={sourceObjectId:X}, " +
+                PluginLog.Debug($"** ReceiveActionEffect: src={sourceObjectId:X}, " +
                     $"pos={(Vector3)Marshal.PtrToStructure<Vector3Struct>(position)}; " +
                     $"AcMgr: CurrentSeq={ActionManagerHelper.CurrentSeq}, " +
                     $"LastRecSeq={ActionManagerHelper.LastRecievedSeq}");
@@ -296,7 +296,7 @@ namespace ActionEffectRange.Actions
 
                 if (effectHeader == IntPtr.Zero)
                 {
-                    LogError("ReceiveActionEffect: effectHeader ptr is zero");
+                    PluginLog.Error("ReceiveActionEffect: effectHeader ptr is zero");
                     return;
                 }
                 var header = Marshal.PtrToStructure<ActionEffectHeader>(effectHeader);
@@ -304,7 +304,7 @@ namespace ActionEffectRange.Actions
                     $"source={sourceObjectId:X}, target={header.TargetObjectId:X}, " +
                     $"action={header.ActionId}, seq={header.Sequence}");
 #if DEBUG
-                LogDebug($"** ---effectHeader: target={header.TargetObjectId:X}, " +
+                PluginLog.Debug($"** ---effectHeader: target={header.TargetObjectId:X}, " +
                     $"action={header.ActionId}, unkObjId={header.UnkObjectId:X}, " +
                     $"seq={header.Sequence}, unk={header.Unk_1A:X}");
 #endif
@@ -336,7 +336,7 @@ namespace ActionEffectRange.Actions
                 var erdata = EffectRangeDataManager.NewData(header.ActionId);
                 if (erdata == null)
                 {
-                    LogError($"Cannot get data for action#{header.ActionId}");
+                    PluginLog.Error($"Cannot get data for action#{header.ActionId}");
                     return;
                 }
 
@@ -496,7 +496,7 @@ namespace ActionEffectRange.Actions
             }
             catch (Exception e)
             {
-                LogError($"{e}");
+                PluginLog.Error($"{e}");
             }
         }
 
@@ -605,24 +605,24 @@ namespace ActionEffectRange.Actions
         private static void OnClassJobChangedClearCache(uint classJobId)
             => ClearSeqRecordCache();
 
-        private static void OnTerritoryChangedClearCache(object? sender, ushort terr)
+        private static void OnTerritoryChangedClearCache(ushort terr)
             => ClearSeqRecordCache();
 
 
         static ActionWatcher()
         {
-            UseActionHook ??= Hook<UseActionDelegate>.FromAddress(
+            UseActionHook ??= InteropProvider.HookFromAddress<UseActionDelegate>(
                 ActionManagerHelper.FpUseAction, UseActionDetour);
-            UseActionLocationHook ??= Hook<UseActionLocationDelegate>.FromAddress(
+            UseActionLocationHook ??= InteropProvider.HookFromAddress<UseActionLocationDelegate>(
                 ActionManagerHelper.FpUseActionLocation, UseActionLocationDetour);
-            ReceiveActionEffectHook ??= Hook<ReceiveActionEffectDelegate>.FromAddress(
+            ReceiveActionEffectHook ??= InteropProvider.HookFromAddress<ReceiveActionEffectDelegate>(
                 SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B 8D F0 03 00 00"), 
                 ReceiveActionEffectDetour);
-            SendActionHook ??= Hook<SendActionDelegate>.FromAddress(
+            SendActionHook ??= InteropProvider.HookFromAddress<SendActionDelegate>(
                 SigScanner.ScanText("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? F3 0F 10 3D ?? ?? ?? ?? 48 8D 4D BF"), 
                 SendActionDetour);
 
-            LogInformation("ActionWatcher init:\n" +
+            PluginLog.Information("ActionWatcher init:\n" +
                 $"\tUseActionHook @{UseActionHook?.Address ?? IntPtr.Zero:X}\n" +
                 $"\tUseActionLoactionHook @{UseActionLocationHook?.Address ?? IntPtr.Zero:X}\n" +
                 $"\tReceiveActionEffectHook @{ReceiveActionEffectHook?.Address ?? IntPtr.Zero:X}\n" +

@@ -1,4 +1,6 @@
-﻿namespace ActionEffectRange.Helpers
+﻿using Dalamud.Plugin.Services;
+
+namespace ActionEffectRange.Helpers
 {
     internal static class ClassJobWatcher
     {
@@ -23,7 +25,7 @@
             }
         }
 
-        private static void OnFrameworkUpdate(Dalamud.Game.Framework _)
+        private static void OnFrameworkUpdate(IFramework framework)
         {
             if (ClientState.LocalContentId == 0) return;
             if (LocalPlayer == null) return;

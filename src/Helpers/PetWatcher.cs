@@ -9,7 +9,7 @@ namespace ActionEffectRange.Helpers
         private static readonly ExcelSheet<GeneratedSheets.Pet>? petSheet
             = DataManager.GetExcelSheet<GeneratedSheets.Pet>();
 
-        public static bool HasPetPresent => BuddyList.PetBuddyPresent;
+        public static bool HasPetPresent => BuddyList.PetBuddy != null;
 
         public static GameObject? GetPet()
             => BuddyList.PetBuddy?.GameObject;

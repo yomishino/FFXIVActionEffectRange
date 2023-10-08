@@ -37,7 +37,7 @@ namespace ActionEffectRange.Helpers
         {
             actionMgrPtr = (IntPtr)ActionManager.Instance();
             if (actionMgrPtr == IntPtr.Zero)
-                LogWarning("Ptr to ActionManager is 0");
+                PluginLog.Warning("Ptr to ActionManager is 0");
         }
     }
 }

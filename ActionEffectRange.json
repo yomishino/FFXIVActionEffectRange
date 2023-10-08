@@ -9,6 +9,6 @@
   ],
   "ImageUrls": "",
   "IconUrl": "",
-  "Changelog": "v2.0 new features & updates: \n - Effect range for automatically triggered actions, such as heals from Earthly Star when the status effect expires \n - Effect range for summoned pets/companions in addition to ACN/SMN/SCH pets, such as DRK's Esteem and MCH's Autoturret (PvP) \n - Improved implementation and other bug fixes",
-  "DalamudApiLevel": 8
+  "Changelog": "Tentative update for compatibility with Dalamud API9",
+  "DalamudApiLevel": 9
 }

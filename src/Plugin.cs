@@ -1,6 +1,5 @@
 ﻿global using static ActionEffectRange.Game;
 global using static ActionEffectRange.Plugin;
-global using static Dalamud.Logging.PluginLog;
 global using ActionEffectRange.Utils;
 global using System;
 global using System.Numerics;
@@ -10,43 +9,36 @@ using ActionEffectRange.Actions.Data;
 using ActionEffectRange.Drawing;
 using ActionEffectRange.Helpers;
 using ActionEffectRange.UI;
-using Dalamud.Data;
 using Dalamud.Game;
 using Dalamud.Game.Command;
-using Dalamud.Game.ClientState;
-using Dalamud.Game.ClientState.Buddy;
-using Dalamud.Game.ClientState.Objects;
 using Dalamud.IoC;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 
 namespace ActionEffectRange
 {
     public class Plugin : IDalamudPlugin
     {
         [PluginService]
-        //[RequiredVersion("1.0")]
         internal static DalamudPluginInterface PluginInterface { get; private set; } = null!;
         [PluginService]
-        //[RequiredVersion("1.0")]
-        internal static CommandManager CommandManager { get; private set; } = null!;
+        internal static ICommandManager CommandManager { get; private set; } = null!;
         [PluginService]
-        //[RequiredVersion("1.0")]
-        internal static DataManager DataManager { get; private set; } = null!;
+        internal static IDataManager DataManager { get; private set; } = null!;
         [PluginService]
-        //[RequiredVersion("1.0")]
-        internal static SigScanner SigScanner { get; private set; } = null!;
+        internal static ISigScanner SigScanner { get; private set; } = null!;
         [PluginService]
-        //[RequiredVersion("1.0")]
-        internal static Framework Framework { get; private set; } = null!;
+        internal static IGameInteropProvider InteropProvider { get; private set; } = null!;
         [PluginService]
-        //[RequiredVersion("1.0")]
-        internal static ClientState ClientState { get; private set; } = null!;
+        internal static IFramework Framework { get; private set; } = null!;
         [PluginService]
-        //[RequiredVersion("1.0")]
-        internal static ObjectTable ObejctTable { get; private set; } = null!;
+        internal static IClientState ClientState { get; private set; } = null!;
         [PluginService]
-        //[RequiredVersion("1.0")]
-        internal static BuddyList BuddyList { get; private set; } = null!;
+        internal static IObjectTable ObejctTable { get; private set; } = null!;
+        [PluginService]
+        internal static IBuddyList BuddyList { get; private set; } = null!;
+        [PluginService]
+        internal static IPluginLog PluginLog { get; private set; } = null!;
         
 
         public string Name => "ActionEffectRange"
@@ -120,7 +112,7 @@ namespace ActionEffectRange
             InConfig = true;
         }
 
-        private static void CheckTerritory(object? sender, ushort terr)
+        private static void CheckTerritory(ushort terr)
         {
             if (IsPvPZone)
             {
@@ -134,7 +126,7 @@ namespace ActionEffectRange
             }
         }
 
-        private static void OnLogOut(object? sender, EventArgs e)
+        private static void OnLogOut()
         {
             EffectRangeDrawing.Reset();
         }
@@ -142,8 +134,7 @@ namespace ActionEffectRange
         internal static void RefreshConfig(bool reloadSavedList = false)
         {
             EffectRangeDrawing.RefreshConfig();
-            CheckTerritory(null, ClientState.TerritoryType);
-            //Enabled = Config.Enabled;
+            CheckTerritory(ClientState.TerritoryType); 
 
             if (reloadSavedList)
                 ActionData.ReloadCustomisedData();
@@ -151,7 +142,7 @@ namespace ActionEffectRange
 
         public static void LogUserDebug(string msg)
         {
-            if (Config.LogDebug) LogDebug(msg);
+            if (Config.LogDebug) PluginLog.Debug(msg);
         }
 
 
